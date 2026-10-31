@@ -1,0 +1,15 @@
+{
+  "name": "@diebesgut/content",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mitgelieferte Level als JSON",
+  "exports": {
+    ".": "./src/index.ts",
+    "./rooms/*": "./rooms/*"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@diebesgut/sim": "*"
+  }
+}

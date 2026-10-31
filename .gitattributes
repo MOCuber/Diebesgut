@@ -1,0 +1,4 @@
+# Überall LF, auch unter Windows: Werkzeuge, Golden Replays und der Build auf GitHub sehen dieselben Dateien.
+* text=auto eol=lf
+*.png binary
+*.pdf binary

@@ -1,0 +1,23 @@
+{
+  "name": "@diebesgut/game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Web-App: Schleife, Eingabe, Grafik, Menüs, Speicher",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@diebesgut/content": "*",
+    "@diebesgut/sim": "*",
+    "idb": "^8.0.4",
+    "preact": "^11.1.1"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}

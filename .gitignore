@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
+# Spielkonzept und Plan bleiben lokal, das Repository ist öffentlich
+/*.pdf

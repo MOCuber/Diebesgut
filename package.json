@@ -1,0 +1,35 @@
+{
+  "name": "diebesgut",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Diebesgut – Solo-Testversion: Ein-Finger-Plattformer mit Fallen-Dungeons",
+  "workspaces": [
+    "packages/sim",
+    "packages/content",
+    "packages/game"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @diebesgut/game",
+    "build": "npm run build --workspace @diebesgut/game",
+    "preview": "npm run preview --workspace @diebesgut/game",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc -p packages/sim && tsc -p packages/sim/test && tsc -p packages/content && tsc -p packages/game && tsc -p tools && tsc -p tests",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "golden": "tsx tools/make-golden.ts",
+    "solve": "tsx tools/solve.ts",
+    "icons": "node tools/make-icons.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "globals": "^17.13.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  }
+}
