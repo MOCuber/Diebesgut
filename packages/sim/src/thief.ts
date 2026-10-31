@@ -1,6 +1,6 @@
 import type { Physics } from './constants';
 import type { Dungeon } from './dungeon';
-import { colSolid, rowSolid } from './terrain';
+import { colBlocked, rowBlocked } from './terrain';
 import { idiv } from './units';
 
 /** Eingabe für genau einen Tick. pressed: neuer Druck seit dem letzten Tick. */
@@ -27,8 +27,11 @@ export interface Thief {
   buffer: number;
 }
 
-/** Dieb auf Kachel (tx, ty): mittig, Füße an der Unterkante der Kachel. */
-export function createThief(d: Dungeon, ph: Physics, tx: number, ty: number, dir: 1 | -1): Thief {
+/**
+ * Dieb auf Kachel (tx, ty): mittig, Füße an der Unterkante der Kachel.
+ * block: Kacheln, die Elemente gerade fest machen (Bröckelboden, geschlossenes Tor).
+ */
+export function createThief(d: Dungeon, ph: Physics, tx: number, ty: number, dir: 1 | -1, block: Uint8Array): Thief {
   const th: Thief = {
     x: (tx << 8) + idiv(256 - ph.thiefW, 2),
     y: (ty << 8) + 256 - ph.thiefH,
@@ -41,7 +44,7 @@ export function createThief(d: Dungeon, ph: Physics, tx: number, ty: number, dir
     buffer: 0,
   };
   const bottom = th.y + ph.thiefH;
-  if (rowSolid(d, bottom >> 8, th.x >> 8, (th.x + ph.thiefW - 1) >> 8)) {
+  if (rowBlocked(d, block, bottom >> 8, th.x >> 8, (th.x + ph.thiefW - 1) >> 8)) {
     th.ground = true;
     th.coyote = ph.coyote;
   }
@@ -49,18 +52,18 @@ export function createThief(d: Dungeon, ph: Physics, tx: number, ty: number, dir
 }
 
 /** Wandkontakt: Die Kachel direkt neben der Hitbox ist fest und der Abstand beträgt 0 SE. */
-function touchingWall(d: Dungeon, th: Thief, ph: Physics, dir: number): boolean {
+function touchingWall(d: Dungeon, block: Uint8Array, th: Thief, ph: Physics, dir: number): boolean {
   const r0 = th.y >> 8;
   const r1 = (th.y + ph.thiefH - 1) >> 8;
   if (dir > 0) {
     const edge = th.x + ph.thiefW;
-    return (edge & 255) === 0 && colSolid(d, edge >> 8, r0, r1);
+    return (edge & 255) === 0 && colBlocked(d, block, edge >> 8, r0, r1);
   }
-  return (th.x & 255) === 0 && colSolid(d, (th.x >> 8) - 1, r0, r1);
+  return (th.x & 255) === 0 && colBlocked(d, block, (th.x >> 8) - 1, r0, r1);
 }
 
 /** Schritte 1 bis 6 der verbindlichen Tick-Reihenfolge für den Dieb (t = laufender Tick). */
-export function moveThief(d: Dungeon, th: Thief, ph: Physics, input: TickInput, t: number): void {
+export function moveThief(d: Dungeon, th: Thief, ph: Physics, input: TickInput, t: number, block: Uint8Array): void {
   const W = ph.thiefW;
   const H = ph.thiefH;
 
@@ -98,24 +101,24 @@ export function moveThief(d: Dungeon, th: Thief, ph: Physics, input: TickInput, 
   const minVy = th.wall !== 0 ? -ph.wallSlide : -ph.maxFall;
   if (th.vy < minVy) th.vy = minVy;
 
-  // 5. Horizontal bewegen, Kollision auflösen. Eine Wand am Boden heißt umdrehen.
+  // 5. Horizontal bewegen, Kollision auflösen. Am Boden bleibt der Dieb an der Wand stehen
+  //    (wallTurn = 1: er dreht um wie im Spielkonzept); in der Luft hängt er an ihr.
   let x = th.x + th.dir * ph.runSpeed;
   const r0 = th.y >> 8;
   const r1 = (th.y + H - 1) >> 8;
   if (th.dir > 0) {
     const col = (x + W - 1) >> 8;
-    if (colSolid(d, col, r0, r1)) x = (col << 8) - W;
+    if (colBlocked(d, block, col, r0, r1)) x = (col << 8) - W;
   } else {
     const col = x >> 8;
-    if (colSolid(d, col, r0, r1)) x = (col + 1) << 8;
+    if (colBlocked(d, block, col, r0, r1)) x = (col + 1) << 8;
   }
   th.x = x;
-  if (touchingWall(d, th, ph, th.dir)) {
-    if (th.ground) {
-      th.dir = th.dir === 1 ? -1 : 1;
+  if (touchingWall(d, block, th, ph, th.dir)) {
+    if (!th.ground) th.wall = th.dir;
+    else {
       th.wall = 0;
-    } else {
-      th.wall = th.dir;
+      if (ph.wallTurn !== 0) th.dir = th.dir === 1 ? -1 : 1;
     }
   } else {
     th.wall = 0;
@@ -128,14 +131,14 @@ export function moveThief(d: Dungeon, th: Thief, ph: Physics, input: TickInput, 
   th.ground = false;
   if (th.vy < 0) {
     const row = (y + H - 1) >> 8;
-    if (rowSolid(d, row, c0, c1)) {
+    if (rowBlocked(d, block, row, c0, c1)) {
       y = (row << 8) - H;
       th.vy = 0;
       th.ground = true;
     }
   } else if (th.vy > 0) {
     const row = y >> 8;
-    if (rowSolid(d, row, c0, c1)) {
+    if (rowBlocked(d, block, row, c0, c1)) {
       y = (row + 1) << 8;
       th.vy = 0;
     }

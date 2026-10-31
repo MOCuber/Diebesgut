@@ -14,8 +14,9 @@ import {
   type Dungeon,
   type Physics,
   type Run,
+  type RunStatus,
 } from '@diebesgut/sim';
-import { addRun, getRecord, putRecord, type RoomRecord, type RunLog } from '../storage';
+import { addRun, getRecord, putRecord, recordId, type RoomRecord, type RunLog } from '../storage';
 import { vibrate, type Sfx } from './audio';
 import type { Effects } from './effects';
 import type { JumpInput } from './input';
@@ -34,6 +35,20 @@ export interface WinInfo {
   determinismError: string | null;
   /** Bestzeiten werden nur mit Standardphysik gespeichert */
   recorded: boolean;
+  /** Eingaben des Laufs (Fingerwechsel), etwa um das Par einer Festung zu senken */
+  toggles: number[];
+}
+
+/** Ergebnis eines Laufs ohne automatischen Neustart (Test und Beweis im Editor). */
+export interface EndInfo {
+  status: RunStatus;
+  ticks: number;
+  /** Mitte des Diebs beim Tod in SE, sonst null */
+  death: { x: number; y: number } | null;
+  /** Weg des Diebs: x, y in SE, abwechselnd, jeder zweite Tick */
+  trail: number[];
+  toggles: number[];
+  phys: Physics;
 }
 
 export interface SessionOptions {
@@ -41,20 +56,30 @@ export interface SessionOptions {
   phys: Physics;
   /** '' oder 'V1'/'V2' im Blindtest */
   blindLabel: string;
+  /** „Test ab hier“: anderer Startpunkt, zählt nie als Beweis */
+  from?: { x: number; y: number; dir: 1 | -1 };
+  /** false: nach Tod oder Sieg kein neuer Lauf, sondern hooks.ended (Standard true) */
+  autoRestart?: boolean;
+  /** Läufe in Statistik und Rekorde schreiben (Standard true) */
+  record?: boolean;
 }
 
 export interface SessionHooks {
   /** Zeit und Schlüssel für die Leiste; wird bei jeder Änderung aufgerufen */
   hud(tick: number, keys: number, best: number): void;
   won(info: WinInfo): void;
+  ended?(info: EndInfo): void;
 }
+
+/** So lange zeigt ein Test noch die offene Truhe, bevor es zurück in den Editor geht. */
+const TEST_WIN_MS = 700;
 
 type State = 'play' | 'dying' | 'won';
 
 /** Sammelt die Ergebnisse nach der Physik getrennt: Standard, feste Sprunghöhe oder gar nicht. */
 export function recordKey(hash: string, phys: Physics): string | null {
-  if (isDefaultPhysics(phys)) return hash;
-  if (isDefaultPhysics({ ...phys, variableJump: DEFAULT_PHYSICS.variableJump })) return `${hash}|fest`;
+  if (isDefaultPhysics(phys)) return recordId(hash);
+  if (isDefaultPhysics({ ...phys, variableJump: DEFAULT_PHYSICS.variableJump })) return recordId(hash, true);
   return null;
 }
 
@@ -79,6 +104,8 @@ export class Session {
   private startedAt = 0;
   private hudTick = -1;
   private hudKeys = -1;
+  private trail: number[] = [];
+  private endedSent = false;
 
   constructor(
     private readonly opts: SessionOptions,
@@ -91,7 +118,7 @@ export class Session {
     this.d = opts.dungeon;
     this.hash = dungeonHash(this.d);
     this.phys = opts.phys;
-    this.run = createRun(this.d, this.phys);
+    this.run = createRun(this.d, this.phys, opts.from);
     this.prev = cloneRun(this.run);
     this.newRun();
     void this.loadBest();
@@ -118,6 +145,24 @@ export class Session {
     if (this.state === 'play' && this.run.tick > 0) this.log('abort');
   }
 
+  private get recording(): boolean {
+    return this.opts.record !== false;
+  }
+
+  private sendEnded(): void {
+    if (this.endedSent) return;
+    this.endedSent = true;
+    const th = this.run.thief;
+    this.hooks.ended?.({
+      status: this.run.status,
+      ticks: this.run.tick,
+      death: this.run.status === 'dead' ? { x: th.x + (this.phys.thiefW >> 1), y: th.y + (this.phys.thiefH >> 1) } : null,
+      trail: this.trail,
+      toggles: this.rec.toggles.slice(),
+      phys: this.phys,
+    });
+  }
+
   /** Neustart über die Schaltfläche oder nach dem Ergebnis. */
   restart(): void {
     if (this.state === 'play' && this.run.tick > 0) this.log('abort');
@@ -133,9 +178,11 @@ export class Session {
   }
 
   private newRun(): void {
-    this.run = createRun(this.d, this.phys);
+    this.run = createRun(this.d, this.phys, this.opts.from);
     this.prev = cloneRun(this.run);
     this.rec = new Recorder();
+    this.trail = [this.run.thief.x + (this.phys.thiefW >> 1), this.run.thief.y + (this.phys.thiefH >> 1)];
+    this.endedSent = false;
     this.state = 'play';
     this.acc = 0;
     this.attempt++;
@@ -165,8 +212,11 @@ export class Session {
       } else if (this.state === 'dying') {
         if (this.input.takePress() || now - this.stateSince >= DEATH_MS) {
           this.endedAt = this.stateSince;
-          this.newRun();
+          if (this.opts.autoRestart === false) this.sendEnded();
+          else this.newRun();
         }
+      } else if (this.state === 'won' && this.opts.autoRestart === false && now - this.stateSince >= TEST_WIN_MS) {
+        this.sendEnded();
       }
       this.fx.update(elapsed);
     }
@@ -190,6 +240,7 @@ export class Session {
     const input = this.input.consumeTick(); // held + pressed für genau diesen Tick
     step(this.d, this.run, input);
     this.rec.add(this.run.tick, input);
+    if ((this.run.tick & 1) === 0) this.trail.push(this.run.thief.x + (this.phys.thiefW >> 1), this.run.thief.y + (this.phys.thiefH >> 1));
     this.events(this.prev, this.run);
     if (this.run.status !== 'running') this.end(now);
   }
@@ -233,7 +284,7 @@ export class Session {
       vibrate(40);
       this.fx.burst((this.d.chest.x << 8) + 128, (this.d.chest.y << 8) + 128, 40, [COLORS.gold, '#fff3b0', '#ffffff'], 12, 30, 900, 0.25);
       this.log('won');
-      void this.finishWin();
+      if (this.opts.autoRestart !== false) void this.finishWin();
       return;
     }
     this.state = 'dying';
@@ -267,7 +318,7 @@ export class Session {
         this.best = rec.bestTicks;
       });
     }
-    this.hooks.won({ ticks: run.tick, best: this.best, newBest, determinismError, recorded: key !== null });
+    this.hooks.won({ ticks: run.tick, best: this.best, newBest, determinismError, recorded: key !== null, toggles: this.rec.toggles.slice() });
   }
 
   private recordQueue: Promise<void> = Promise.resolve();
@@ -283,6 +334,7 @@ export class Session {
   }
 
   private log(status: RunLog['status']): void {
+    if (!this.recording) return;
     const run = this.run;
     const th = run.thief;
     const dead = status === 'dead';

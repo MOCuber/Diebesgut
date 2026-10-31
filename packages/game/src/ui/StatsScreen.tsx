@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'preact/hooks';
 import { download, runsToCsv } from '../csv';
 import { num, seconds } from '../format';
-import { allRecords, allRuns, clearRuns, type Prefs, type RoomRecord, type RunLog } from '../storage';
-import type { Room } from './MenuScreen';
 import { dungeonHash } from '@diebesgut/sim';
+import { allRecords, allRuns, clearRuns, recordId, type Prefs, type RoomRecord, type RunLog } from '../storage';
+import type { Room } from './MenuScreen';
 
 interface Props {
   rooms: Room[];
@@ -94,8 +94,8 @@ export function StatsScreen({ rooms, prefs, onBack }: Props) {
           {rooms.map((room) => {
             const hash = dungeonHash(room.dungeon);
             const g = group(room.dungeon.name, runs.filter((r) => r.hash === hash));
-            const std = records.get(hash);
-            const fixed = records.get(`${hash}|fest`);
+            const std = records.get(recordId(hash));
+            const fixed = records.get(recordId(hash, true));
             const deaths: Record<string, number> = {};
             for (const r of runs) if (r.hash === hash && r.killer) deaths[r.killer] = (deaths[r.killer] ?? 0) + 1;
             return (

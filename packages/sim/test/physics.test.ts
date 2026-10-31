@@ -88,9 +88,21 @@ describe('Sprungphysik laut Spielkonzept', () => {
     expect(yWall - minY).toBe(693);
   });
 
-  it('am Boden dreht der Dieb an der Wand um und steckt nie in ihr', () => {
+  it('am Boden bleibt der Dieb an der Wand stehen und steckt nie in ihr', () => {
     const d = flatRoom();
     const run = createRun(d);
+    for (let t = 1; t <= 400; t++) {
+      step(d, run, NONE);
+      expect(run.thief.x + 152).toBeLessThanOrEqual(21 * 256);
+    }
+    expect(run.thief.x).toBe(21 * 256 - 152);
+    expect(run.thief.dir).toBe(1);
+    expect(run.thief.ground).toBe(true);
+  });
+
+  it('mit wallTurn = 1 dreht er um wie im ursprünglichen Spielkonzept', () => {
+    const d = flatRoom();
+    const run = createRun(d, { ...DEFAULT_PHYSICS, wallTurn: 1 });
     let turned = -1;
     for (let t = 1; t <= 400; t++) {
       step(d, run, NONE);
@@ -99,6 +111,20 @@ describe('Sprungphysik laut Spielkonzept', () => {
       if (turned < 0 && run.thief.dir === -1) turned = run.tick;
     }
     expect(turned).toBe(184);
+  });
+
+  it('von der Wand weg geht es mit Sprung und Walljump', () => {
+    const d = flatRoom();
+    const run = createRun(d);
+    while (run.thief.x + 152 < 21 * 256) step(d, run, NONE);
+    step(d, run, PRESS);
+    for (let i = 0; i < 8; i++) step(d, run, HOLD);
+    expect(run.thief.wall).toBe(1);
+    step(d, run, NONE);
+    step(d, run, PRESS);
+    expect(run.thief.dir).toBe(-1);
+    for (let i = 0; i < 60; i++) step(d, run, NONE);
+    expect(run.thief.x).toBeLessThan(18 * 256);
   });
 
   it('an der Wand rutscht er höchstens 12 SE/Tick', () => {

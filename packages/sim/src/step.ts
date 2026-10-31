@@ -1,4 +1,4 @@
-import { DEFAULT_PHYSICS, MAX_RUN_TICKS, type Physics } from './constants';
+import { DEFAULT_PHYSICS, GRID_H, GRID_W, MAX_RUN_TICKS, type Physics } from './constants';
 import type { Dungeon } from './dungeon';
 import { BEHAVIORS } from './elements';
 import { ShapeList, rectsOverlap, shapeHitsRect, type Shape } from './shapes';
@@ -18,6 +18,8 @@ export interface Run {
   /** Element-ID der tödlichen Falle, -1 = keine */
   killer: number;
   phys: Physics;
+  /** Kacheln, die Elemente gerade fest machen; abgeleitet aus dyn, deshalb nicht im Hash */
+  block: Uint8Array;
 }
 
 /** Sammelflächen relativ zur Kachel in SE. */
@@ -30,24 +32,57 @@ export function dynSize(d: Dungeon): number {
   return n;
 }
 
+/** Erster Platz jedes Elements in run.dyn, Index = Element-ID. */
+export function dynOffsets(d: Dungeon): number[] {
+  const out: number[] = [];
+  let off = 0;
+  for (const el of d.elements) {
+    out.push(off);
+    off += BEHAVIORS[el.type]?.dynSize ?? 0;
+  }
+  return out;
+}
+
+function updateBlocks(d: Dungeon, dyn: Int32Array, block: Uint8Array): void {
+  block.fill(0);
+  let off = 0;
+  for (const el of d.elements) {
+    const b = BEHAVIORS[el.type];
+    if (!b) continue;
+    b.blocks?.(el, dyn, off, block);
+    off += b.dynSize;
+  }
+}
+
 /**
  * Neuer Lauf. from setzt den Dieb an eine andere Stelle („Test ab hier“) und zählt nie als Beweis.
  */
 export function createRun(d: Dungeon, phys: Physics = DEFAULT_PHYSICS, from?: { x: number; y: number; dir: 1 | -1 }): Run {
   const s = from ?? d.start;
+  const dyn = new Int32Array(dynSize(d));
+  let off = 0;
+  for (const el of d.elements) {
+    const b = BEHAVIORS[el.type];
+    if (!b) continue;
+    b.init?.(el, d, dyn, off);
+    off += b.dynSize;
+  }
+  const block = new Uint8Array(GRID_W * GRID_H);
+  updateBlocks(d, dyn, block);
   return {
     tick: 0,
     status: 'running',
-    thief: createThief(d, phys, s.x, s.y, s.dir),
+    thief: createThief(d, phys, s.x, s.y, s.dir, block),
     keys: 0,
-    dyn: new Int32Array(dynSize(d)),
+    dyn,
     killer: -1,
     phys,
+    block,
   };
 }
 
 export function cloneRun(r: Run): Run {
-  return { ...r, thief: { ...r.thief }, dyn: r.dyn.slice() };
+  return { ...r, thief: { ...r.thief }, dyn: r.dyn.slice(), block: r.block.slice() };
 }
 
 function collectShapes(d: Dungeon, t: number, dyn: Int32Array, out: ShapeList): void {
@@ -57,7 +92,7 @@ function collectShapes(d: Dungeon, t: number, dyn: Int32Array, out: ShapeList): 
     const el = d.elements[i];
     const b = BEHAVIORS[el.type];
     if (!b) continue;
-    b.shapes(el, d, t, dyn, off, i, out);
+    b.shapes?.(el, d, t, dyn, off, i, out);
     off += b.dynSize;
   }
 }
@@ -74,9 +109,17 @@ export function step(d: Dungeon, run: Run, input: TickInput): void {
   const H = ph.thiefH;
 
   // 1.–6. Eingabe, Sprung, Abbruch, Schwerkraft, Bewegung
-  moveThief(d, th, ph, input, t);
+  moveThief(d, th, ph, input, t, run.block);
 
   // 7. Fallen auf Tick t setzen (Reihenfolge nach Element-ID), dann Treffertest.
+  let off = 0;
+  for (let i = 0; i < d.elements.length; i++) {
+    const el = d.elements[i];
+    const b = BEHAVIORS[el.type];
+    if (!b) continue;
+    b.update?.(el, d, run, t, off);
+    off += b.dynSize;
+  }
   collectShapes(d, t, run.dyn, scratch);
   for (let i = 0; i < scratch.count; i++) {
     const s = scratch.items[i];
@@ -100,6 +143,9 @@ export function step(d: Dungeon, run: Run, input: TickInput): void {
       run.status = 'won';
     }
   }
+
+  // Feste Kacheln aus Elementen für den nächsten Tick
+  updateBlocks(d, run.dyn, run.block);
 
   run.tick = t;
   if (run.status === 'running' && t >= MAX_RUN_TICKS) run.status = 'timeout';

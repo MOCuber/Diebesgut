@@ -1,8 +1,10 @@
 import { TEST_ROOMS } from '@diebesgut/content';
-import { DEFAULT_PHYSICS, clampPhysics, fromJson, type Physics } from '@diebesgut/sim';
+import { DEFAULT_PHYSICS, clampPhysics, decode, fromJson, isDefaultPhysics, makeReplay, encodeReplay, verify, type Physics } from '@diebesgut/sim';
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { EditorScreen } from './editor/EditorScreen';
 import { Sfx } from './game/audio';
-import { DEFAULT_PREFS, loadSetting, saveSetting, type Prefs } from './storage';
+import type { WinInfo } from './game/session';
+import { DEFAULT_PREFS, getFortress, loadSetting, saveSetting, updateFortress, type Prefs } from './storage';
 import { blindLabel, effectivePhysics } from './tuning';
 import { MenuScreen, type Room } from './ui/MenuScreen';
 import { PlayScreen } from './ui/PlayScreen';
@@ -12,7 +14,13 @@ import { StatsScreen } from './ui/StatsScreen';
 
 export const sfx = new Sfx();
 
-type Screen = { kind: 'start' } | { kind: 'menu' } | { kind: 'play'; room: number } | { kind: 'stats' } | { kind: 'selftest' };
+type Screen =
+  | { kind: 'start' }
+  | { kind: 'menu' }
+  | { kind: 'play'; room: Room; fortress?: { id: string; hash: string } }
+  | { kind: 'editor'; id: string }
+  | { kind: 'stats' }
+  | { kind: 'selftest' };
 
 /** Querformat erzwingen, wo das System es erlaubt (Android im Vollbild). */
 async function goFullscreenLandscape(): Promise<void> {
@@ -24,6 +32,25 @@ async function goFullscreenLandscape(): Promise<void> {
   } catch {
     // iPhone und Desktop: dann hilft der Hinweis „Bitte drehen“
   }
+}
+
+/** Jeder spätere schnellere Lauf des Erbauers senkt das Par, gemessen mit Standardphysik. */
+async function lowerPar(id: string, hash: string, phys: Physics, info: WinInfo): Promise<void> {
+  if (!isDefaultPhysics(phys)) return;
+  const f = await getFortress(id);
+  const v = f?.versions.find((x) => x.hash === hash);
+  if (!f || !v || info.ticks >= v.par) return;
+  const d = decode(v.dungeon);
+  const result = verify(d, { phys, toggles: info.toggles, ticks: info.ticks });
+  if (result.status !== 'won') return;
+  const proof = encodeReplay(makeReplay(d, phys, info.toggles, result));
+  await updateFortress(id, (fx) => {
+    const vx = fx.versions.find((x) => x.hash === hash);
+    if (vx && info.ticks < vx.par) {
+      vx.par = info.ticks;
+      vx.proof = proof;
+    }
+  });
 }
 
 export function App() {
@@ -54,6 +81,7 @@ export function App() {
     void saveSetting('tuning', t);
   };
   const phys = effectivePhysics(tuning, prefs.blind);
+  const toMenu = () => setScreen({ kind: 'menu' });
 
   let content;
   switch (screenState.kind) {
@@ -63,7 +91,7 @@ export function App() {
           onGo={() => {
             sfx.unlock();
             void goFullscreenLandscape();
-            setScreen({ kind: 'menu' });
+            toMenu();
           }}
         />
       );
@@ -76,32 +104,39 @@ export function App() {
           tuning={tuning}
           onPrefs={setPrefs}
           onResetTuning={() => setTuning({ ...DEFAULT_PHYSICS })}
-          onPlay={(room) => setScreen({ kind: 'play', room })}
+          onPlay={(room, fortress) => setScreen({ kind: 'play', room, fortress })}
+          onEdit={(id) => setScreen({ kind: 'editor', id })}
           onStats={() => setScreen({ kind: 'stats' })}
           onSelfTest={() => setScreen({ kind: 'selftest' })}
         />
       );
       break;
-    case 'play':
+    case 'play': {
+      const fortress = screenState.fortress;
       content = (
         <PlayScreen
-          key={screenState.room}
-          room={rooms[screenState.room]}
+          key={screenState.room.id}
+          room={screenState.room}
           phys={phys}
           blindLabel={blindLabel(prefs.blind)}
           tuning={tuning}
           prefs={prefs}
           onTuning={setTuning}
           onPrefs={setPrefs}
-          onExit={() => setScreen({ kind: 'menu' })}
+          onExit={toMenu}
+          onWin={fortress ? (info) => void lowerPar(fortress.id, fortress.hash, phys, info) : undefined}
         />
       );
       break;
+    }
+    case 'editor':
+      content = <EditorScreen fortressId={screenState.id} phys={phys} tuning={tuning} prefs={prefs} onTuning={setTuning} onPrefs={setPrefs} onExit={toMenu} />;
+      break;
     case 'stats':
-      content = <StatsScreen rooms={rooms} prefs={prefs} onPrefs={setPrefs} onBack={() => setScreen({ kind: 'menu' })} />;
+      content = <StatsScreen rooms={rooms} prefs={prefs} onPrefs={setPrefs} onBack={toMenu} />;
       break;
     case 'selftest':
-      content = <SelfTestScreen onBack={() => setScreen({ kind: 'menu' })} />;
+      content = <SelfTestScreen onBack={toMenu} />;
       break;
   }
 

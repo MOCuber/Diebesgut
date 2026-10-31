@@ -88,6 +88,19 @@ export function TuningPanel({ tuning, blind, onTuning, onBlind, onClose }: Props
       </section>
 
       <section class="panel-section">
+        <h3>An der Wand</h3>
+        <div class="seg">
+          <button class={`btn small ${tuning.wallTurn ? '' : 'primary'}`} onClick={() => set('wallTurn', 0)}>
+            Stehen bleiben
+          </button>
+          <button class={`btn small ${tuning.wallTurn ? 'primary' : ''}`} onClick={() => set('wallTurn', 1)}>
+            Umdrehen (Spielkonzept)
+          </button>
+        </div>
+        <p class="panel-note">Beim Stehenbleiben kommst du per Sprung und Walljump weg, oder ein Prallbrett drückt dich zurück.</p>
+      </section>
+
+      <section class="panel-section">
         <h3>Physik</h3>
         {TUNING_PARAMS.map((p) => {
           const v = tuning[p.key];

@@ -66,7 +66,8 @@ describe('Bauregeln', () => {
     expect(codes({ chest: { x: 5, y: 10 } })).toContain('spacing');
     expect(codes({ elements: [{ type: 'saw', x: 0, y: 5 }] })).toContain('wall');
     expect(codes({ elements: [{ type: 'spikes', x: 12, y: 5, dir: 0 }] })).toContain('place');
-    expect(codes({ elements: [{ type: 'spring', x: 12, y: 10 }] })).toContain('unavailable');
+    expect(codes({ elements: [{ type: 'spring', x: 12, y: 10 }] })).toEqual([]);
+    expect(codes({ elements: [{ type: 'spring', x: 12, y: 6 }] })).toContain('place');
     expect(codes({ elements: [{ type: 'railsaw', x: 12, y: 5, dx: 2, dy: 2 }] })).toContain('place');
   });
 

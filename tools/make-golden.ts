@@ -85,6 +85,14 @@ goldens.push(makeGolden('raum2-tuning', 'Geänderte Physik aus dem Tuning-Panel'
 for (const seed of [1, 2, 3]) {
   goldens.push(makeGolden(`physik-${seed}`, `Säulen, Schacht und Walljumps, Seed ${seed}`, SHAFT_ROOM, undefined, randomToggles(seed * 31, 3600), 3600));
 }
+goldens.push(makeGolden('physik-umdrehen', 'Umdrehen an Wänden wie im ursprünglichen Spielkonzept', SHAFT_ROOM, { wallTurn: 1 }, randomToggles(97, 3600), 3600));
+const allElements = JSON.parse(readFileSync('tests/fixtures/alle-elemente.json', 'utf8')) as DungeonJson;
+// Der weiteste Lauf der Suche kommt an vielen Elementen vorbei, auch ohne den Raum zu schaffen.
+const deep = solve(fromJson(allElements), { iterations: 60000, seed: 5 }).deepest;
+goldens.push(makeGolden('alle-weit', 'Alle 14 Elemente, weitester Lauf der Suche', allElements, undefined, deep.toggles, deep.ticks));
+for (const seed of [1, 2, 3, 4]) {
+  goldens.push(makeGolden(`alle-${seed}`, `Alle 14 Elemente, Zufallseingaben, Seed ${seed}`, allElements, undefined, randomToggles(seed * 53 + 7, 3600), 3600));
+}
 
 /** JSON mit Einrückung, Zahlenlisten aber in einer Zeile. */
 function format(g: GoldenReplay): string {

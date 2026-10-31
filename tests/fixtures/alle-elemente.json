@@ -1,0 +1,34 @@
+{
+  "name": "Alle Elemente",
+  "rows": [
+    "######################",
+    "#....................#",
+    "#.K..................#",
+    "#....................#",
+    "#.......#####........#",
+    "#..................K.#",
+    "#....................#",
+    "#####...........######",
+    "#..........K.........#",
+    "#....................#",
+    "#S..............T....#",
+    "######################"
+  ],
+  "startDir": 1,
+  "elements": [
+    { "type": "spikes", "x": 8, "y": 10, "dir": 0 },
+    { "type": "spring", "x": 12, "y": 10 },
+    { "type": "saw", "x": 15, "y": 9 },
+    { "type": "crumble", "x": 5, "y": 7 },
+    { "type": "flame", "x": 10, "y": 1, "dir": 2, "takt": 1, "phase": 3 },
+    { "type": "gate", "x": 3, "y": 6, "gx": 3, "gy": -2, "dauer": 0 },
+    { "type": "railsaw", "x": 14, "y": 5, "dx": 4, "dy": 0, "tempo": 2, "phase": 1 },
+    { "type": "orbitsaw", "x": 17, "y": 3, "radius": 1, "umlauf": 2, "dreh": 1, "phase": 2 },
+    { "type": "pendulum", "x": 4, "y": 1, "kette": 2, "periode": 1, "phase": 5 },
+    { "type": "stomper", "x": 10, "y": 5, "takt": 0, "phase": 3 },
+    { "type": "crossbow", "x": 15, "y": 1, "dir": 2, "intervall": 0, "phase": 4 },
+    { "type": "guard", "x": 12, "y": 3, "tempo": 2 },
+    { "type": "scout", "x": 18, "y": 6, "blick": 0 },
+    { "type": "bumper", "x": 20, "y": 8, "seite": 1 }
+  ]
+}

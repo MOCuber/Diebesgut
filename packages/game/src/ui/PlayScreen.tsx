@@ -4,7 +4,7 @@ import { sfx } from '../app';
 import { Effects } from '../game/effects';
 import { JumpInput } from '../game/input';
 import { Renderer } from '../game/render';
-import { Session, type WinInfo } from '../game/session';
+import { Session, type EndInfo, type WinInfo } from '../game/session';
 import { keyCount, seconds } from '../format';
 import type { Prefs } from '../storage';
 import { IconBack, IconHitbox, IconKey, IconRestart, IconTuning } from './icons';
@@ -21,6 +21,10 @@ interface Props {
   onTuning(t: Physics): void;
   onPrefs(p: Prefs): void;
   onExit(): void;
+  /** Test oder Beweislauf aus dem Editor: kein Neustart, das Ergebnis geht an onEnd */
+  test?: { from?: { x: number; y: number; dir: 1 | -1 }; proof: boolean; onEnd(info: EndInfo): void };
+  /** nach jedem geschafften Lauf (etwa um das Par der eigenen Festung zu senken) */
+  onWin?(info: WinInfo): void;
 }
 
 const JUMP_KEYS = new Set(['Space', 'ArrowUp', 'KeyW']);
@@ -29,7 +33,7 @@ const SIDE = 64;
 /** Höhe der oberen Leiste, wenn nicht */
 const TOP = 44;
 
-export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, onPrefs, onExit }: Props) {
+export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, onPrefs, onExit, test, onWin }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeRef = useRef<HTMLSpanElement>(null);
@@ -48,7 +52,8 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
     const renderer = new Renderer(canvas);
     const input = new JumpInput();
     input.onPress = () => sfx.unlock();
-    const session = new Session({ dungeon: room.dungeon, phys, blindLabel }, renderer, input, new Effects(), sfx, {
+    const options = test ? { dungeon: room.dungeon, phys, blindLabel, from: test.from, autoRestart: false, record: test.proof } : { dungeon: room.dungeon, phys, blindLabel };
+    const session = new Session(options, renderer, input, new Effects(), sfx, {
       hud(tick, k, best) {
         if (timeRef.current) timeRef.current.textContent = seconds(tick);
         if (bestRef.current) bestRef.current.textContent = best ? seconds(best) : '–';
@@ -57,6 +62,10 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
       won(info) {
         winAt.current = performance.now();
         setWin(info);
+        onWin?.(info);
+      },
+      ended(info) {
+        test?.onEnd(info);
       },
     });
     session.hitboxes = prefs.hitboxes;
@@ -123,7 +132,7 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
 
   useEffect(() => {
     const s = sessionRef.current;
-    if (s && (JSON.stringify(s.phys) !== JSON.stringify(phys) || s.blindLabel !== blindLabel)) {
+    if (s && !test && (JSON.stringify(s.phys) !== JSON.stringify(phys) || s.blindLabel !== blindLabel)) {
       setWin(null);
       s.setPhysics(phys, blindLabel);
     }
@@ -164,11 +173,11 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
       <div class="play-area" ref={areaRef}>
         <canvas ref={canvasRef} class="stage" />
         <div class="hud hud-a">
-          <button class="icon-btn" onClick={onExit} aria-label="Zurück zum Menü">
+          <button class="icon-btn" onClick={onExit} aria-label={test ? 'Zurück zum Editor' : 'Zurück zum Menü'}>
             <IconBack />
           </button>
           <div class="hud-info">
-            <span class="hud-name">{room.dungeon.name}</span>
+            <span class="hud-name">{test ? (test.proof ? 'Beweislauf' : test.from ? 'Test ab hier' : 'Test') : room.dungeon.name}</span>
             <span class="hud-best">
               Best <span ref={bestRef}>–</span>
             </span>
@@ -187,9 +196,11 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
           <button class={`icon-btn ${prefs.hitboxes ? 'active' : ''}`} onClick={toggleHitboxes} aria-label="Hitboxen anzeigen" aria-pressed={prefs.hitboxes}>
             <IconHitbox />
           </button>
-          <button class="icon-btn" onClick={() => setPanel(true)} aria-label="Tuning">
-            <IconTuning />
-          </button>
+          {!test?.proof && (
+            <button class="icon-btn" onClick={() => setPanel(true)} aria-label="Tuning">
+              <IconTuning />
+            </button>
+          )}
           <button class="icon-btn restart" onClick={restart} aria-label="Neustart">
             <IconRestart />
           </button>

@@ -35,7 +35,8 @@ export const MAX_NAME_LENGTH = 40;
 
 // ---------------------------------------------------------------- kanonische Form
 
-function compareElements(a: Element, b: Element): number {
+/** Kanonische Reihenfolge der Elemente: Typ, y, x, dann Parameter. */
+export function compareElements(a: Element, b: Element): number {
   if (a.type !== b.type) return a.type - b.type;
   if (a.y !== b.y) return a.y - b.y;
   if (a.x !== b.x) return a.x - b.x;

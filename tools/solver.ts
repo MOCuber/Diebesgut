@@ -23,6 +23,8 @@ export interface SolveResult {
   /** meiste Schlüssel, die die Suche in einem Lauf gesammelt hat */
   maxKeys: number;
   cells: number;
+  /** weitester Lauf ohne Tod (meiste Schlüssel, dann längste Dauer), auch ohne Lösung */
+  deepest: Solution;
 }
 
 export interface SolveOptions {
@@ -126,5 +128,10 @@ export function solve(d: Dungeon, opts: SolveOptions = {}): SolveResult {
   }
   let maxKeys = 3;
   while (byKeys[maxKeys].length === 0) maxKeys--;
-  return { best, maxKeys: best ? 3 : maxKeys, cells: all.length };
+  let deep = all[0];
+  for (const c of all) {
+    const score = popcount(c.run.keys) * 100000 + c.run.tick;
+    if (score > popcount(deep.run.keys) * 100000 + deep.run.tick) deep = c;
+  }
+  return { best, maxKeys: best ? 3 : maxKeys, cells: all.length, deepest: { toggles: deep.toggles, ticks: deep.run.tick } };
 }

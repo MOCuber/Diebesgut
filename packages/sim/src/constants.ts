@@ -1,7 +1,10 @@
 import { TICKS_PER_SECOND } from './units';
 
-/** Jede Physikänderung erhöht SIM_VERSION; alte Replays bleiben mit ihrer Version prüfbar. */
-export const SIM_VERSION = 1;
+/**
+ * Jede Physikänderung erhöht SIM_VERSION; alte Replays bleiben mit ihrer Version prüfbar.
+ * 2: Der Dieb bleibt am Boden an Wänden stehen (statt umzudrehen), dazu alle 13 Elemente und das Prallbrett.
+ */
+export const SIM_VERSION = 2;
 
 export const GRID_W = 22;
 export const GRID_H = 12;
@@ -44,6 +47,11 @@ export interface Physics {
   thiefH: number;
   /** 1 = Haltedauer bestimmt die Sprunghöhe, 0 = feste Sprunghöhe (A/B-Test) */
   variableJump: number;
+  /**
+   * Läuft der Dieb am Boden gegen eine Wand: 0 = er bleibt stehen (Standard, umdrehen nur per
+   * Walljump oder Prallbrett), 1 = er dreht um wie im ursprünglichen Spielkonzept.
+   */
+  wallTurn: number;
 }
 
 /** Feste Reihenfolge der Physikwerte für Kodierung und Anzeige. */
@@ -62,9 +70,10 @@ export const PHYSICS_KEYS: readonly (keyof Physics)[] = [
   'thiefW',
   'thiefH',
   'variableJump',
+  'wallTurn',
 ];
 
-/** Kennwerte aus dem Spielkonzept („Steuerung & Physik“). */
+/** Kennwerte aus dem Spielkonzept („Steuerung & Physik“); Abweichung: Stehenbleiben an Wänden. */
 export const DEFAULT_PHYSICS: Readonly<Physics> = Object.freeze({
   runSpeed: 24,
   gravity: 3,
@@ -80,6 +89,7 @@ export const DEFAULT_PHYSICS: Readonly<Physics> = Object.freeze({
   thiefW: 152,
   thiefH: 232,
   variableJump: 1,
+  wallTurn: 0,
 });
 
 /**
@@ -101,6 +111,7 @@ export const PHYSICS_LIMITS: Readonly<Record<keyof Physics, readonly [number, nu
   thiefW: [64, 240],
   thiefH: [64, 248],
   variableJump: [0, 1],
+  wallTurn: [0, 1],
 };
 
 /** Übernimmt gültige Ganzzahlen aus p, alles andere bleibt Standard. */

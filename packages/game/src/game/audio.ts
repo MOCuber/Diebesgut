@@ -80,6 +80,9 @@ export class Sfx {
 /** Haptik: navigator.vibrate gibt es in Chrome für Android, Safari auf dem iPhone kennt es nicht. */
 export function vibrate(ms: number): void {
   try {
+    // Chrome erlaubt Vibration erst nach einer echten Berührung und meldet sonst einen Fehler
+    const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+    if (activation && !activation.hasBeenActive) return;
     navigator.vibrate?.(ms);
   } catch {
     // nicht unterstützt
