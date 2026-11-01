@@ -46,22 +46,19 @@ function randomToggles(seed: number, ticks: number): number[] {
   return rec.toggles;
 }
 
+// Zwei hängende Säulen aus Blöcken mit einem Schacht dazwischen, darunter durchgehender Boden.
 const SHAFT_ROOM: DungeonJson = {
   name: 'Physik-Testraum',
   rows: [
-    '######################',
-    '#....................#',
-    '#..K.#.........#..K..#',
-    '#....#.........#.....#',
-    '#....#...###...#.....#',
-    '#....#.........#.....#',
-    '###..#.........#..####',
-    '#....#...###...#.....#',
-    '#....#.........#.....#',
-    '#.......................',
-    '#S.......#K#........T#',
-    '######################',
-  ].map((r) => r.slice(0, 22)),
+    '..............',
+    '..K........K..',
+    '....##..##....',
+    '....##..##....',
+    '....##..##....',
+    '....##..##....',
+    '..............',
+    'S......K.....T',
+  ],
   elements: [],
 };
 
@@ -78,9 +75,9 @@ for (const id of ['raum1', 'raum2', 'raum3']) {
   }
 }
 
-const fixed: Partial<Physics> = { variableJump: 0 };
+const variable: Partial<Physics> = { variableJump: 1 };
 const tuned: Partial<Physics> = { runSpeed: 30, gravity: 4, jumpVy: 84, coyote: 3, buffer: 4, thiefW: 136, thiefH: 216 };
-goldens.push(makeGolden('raum1-fest', 'Feste Sprunghöhe (A/B-Variante)', room('raum1'), fixed, randomToggles(77, 3600), 3600));
+goldens.push(makeGolden('raum1-variabel', 'Variable Sprunghöhe (A/B-Variante)', room('raum1'), variable, randomToggles(77, 3600), 3600));
 goldens.push(makeGolden('raum2-tuning', 'Geänderte Physik aus dem Tuning-Panel', room('raum2'), tuned, randomToggles(88, 3600), 3600));
 for (const seed of [1, 2, 3]) {
   goldens.push(makeGolden(`physik-${seed}`, `Säulen, Schacht und Walljumps, Seed ${seed}`, SHAFT_ROOM, undefined, randomToggles(seed * 31, 3600), 3600));

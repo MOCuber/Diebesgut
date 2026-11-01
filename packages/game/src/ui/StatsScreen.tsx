@@ -95,7 +95,7 @@ export function StatsScreen({ rooms, prefs, onBack }: Props) {
             const hash = dungeonHash(room.dungeon);
             const g = group(room.dungeon.name, runs.filter((r) => r.hash === hash));
             const std = records.get(recordId(hash));
-            const fixed = records.get(recordId(hash, true));
+            const alt = records.get(recordId(hash, true));
             const deaths: Record<string, number> = {};
             for (const r of runs) if (r.hash === hash && r.killer) deaths[r.killer] = (deaths[r.killer] ?? 0) + 1;
             return (
@@ -107,7 +107,7 @@ export function StatsScreen({ rooms, prefs, onBack }: Props) {
                 <td>{g.aborts}</td>
                 <td>
                   {std?.bestTicks ? `${seconds(std.bestTicks)} s` : '–'}
-                  {fixed?.bestTicks ? ` · fest ${seconds(fixed.bestTicks)} s` : ''}
+                  {alt?.bestTicks ? ` · variabel ${seconds(alt.bestTicks)} s` : ''}
                 </td>
                 <td>
                   {Object.entries(deaths)

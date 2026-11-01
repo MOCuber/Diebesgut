@@ -2,11 +2,12 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { SIM_VERSION, type RunStatus } from '@diebesgut/sim';
 
 /**
- * Schlüssel eines Rekords: Dungeon-Hash und Sim-Version, bei fester Sprunghöhe mit „|fest“.
- * Zeiten aus einer anderen Physik werden so nie verglichen.
+ * Schlüssel eines Rekords: Dungeon-Hash und Sim-Version, mit der anderen Sprungvariante als dem
+ * Standard (seit Sim 3 variabel statt fest) zusätzlich „|variabel“. Zeiten aus einer anderen
+ * Physik werden so nie verglichen.
  */
-export function recordId(hash: string, fixedJump = false): string {
-  return `${hash}@${SIM_VERSION}${fixedJump ? '|fest' : ''}`;
+export function recordId(hash: string, otherJump = false): string {
+  return `${hash}@${SIM_VERSION}${otherJump ? '|variabel' : ''}`;
 }
 
 // Alles liegt auf dem Gerät in IndexedDB. Fehlt der Speicher (etwa im privaten Modus),

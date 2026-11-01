@@ -14,9 +14,9 @@ auch den Server.
 
 | Teil | Inhalt |
 | --- | --- |
-| Sim-Kern | Ganzzahl-Physik nach Spielkonzept (Sprung 3,23 / 1,77 Kacheln, Walljump 2,71, Coyote 5, Puffer 6), verbindliche Tick-Reihenfolge, Zustands-Hash alle 60 Ticks, kanonische Kodierung mit SHA-256, Bauregeln, Replays |
-| 3 Testräume | „Erste Schritte“, „Sägewerk“, „Feuerprobe“, jeweils vom Löser als schaffbar bewiesen |
-| Spiel | Touch und Leertaste, 60 Ticks/s mit Interpolation, Sofort-Neustart (0,25 s Effekt, Tippen überspringt), Timer, Schlüssel, Truhe, Bestzeiten |
+| Sim-Kern | Ganzzahl-Physik (Werte siehe unten), verbindliche Tick-Reihenfolge, Zustands-Hash alle 60 Ticks, kanonische Kodierung mit SHA-256, Bauregeln, Replays |
+| 3 Testräume | „Erste Schritte“, „Sägewerk“, „Feuerprobe“, je genau 4 Fallen, vom Löser als schaffbar bewiesen |
+| Spiel | Touch und Leertaste, 60 Ticks/s mit Interpolation, „Tippen zum Starten“ vor jedem Lauf (Fallen stehen bis dahin bei Tick 0), Sofort-Neustart (0,25 s Effekt, Tippen überspringt), Timer, Schlüssel, Truhe, Bestzeiten |
 | Tuning-Panel | Alle Physikwerte am Handy einstellen, abgeleitete Sprungwerte live, feste oder variable Sprunghöhe, A/B-Blindtest, Verhalten an Wänden |
 | Hitbox-Anzeige | Umschaltbar; beim Tod immer kurz die tödliche Fläche |
 | Messen | Letzte 500 Läufe in IndexedDB, Statistik pro Raum und Variante, CSV-Export für den Playtest-Plan |
@@ -28,17 +28,29 @@ auch den Server.
 | Teil | Inhalt |
 | --- | --- |
 | Alle Elemente | Die 13 Elemente aus dem Spielkonzept plus das Prallbrett, reaktive (Bröckelboden, Tor, Späher) mit Zustand im Lauf |
-| Editor | Raster links, Palette rechts, Zeitleiste unten; Pinsel, Radierer, Rechteck; Pflichtobjekte verschieben; Elemente setzen, auswählen, verschieben, duplizieren, löschen; Stufenknöpfe für alle Parameter; Griffe für Schiene, Tor, Kreisbahn und Kette |
+| Editor | Raster links, Palette rechts, Zeitleiste unten; Pinsel, Radierer und Rechteck setzen Gelände in ganzen 2 × 2-Blöcken; Pflichtobjekte verschieben; Elemente setzen, auswählen, verschieben, duplizieren, löschen; Stufenknöpfe für alle Parameter; Griffe für Schiene, Tor, Kreisbahn und Kette |
 | Bedienung mit dem Daumen | Lupe über dem Finger, zwei Finger zoomen (1- bis 3-fach) und verschieben, langes Drücken wählt aus und macht verschiebbar |
-| Live-Prüfung | Budget, Höchstzahl pro Typ, Startschutz, Abstände, Objekte in Wänden, Befestigung; Verstöße rot im Raster, Liste mit Sprung zur Stelle |
+| Live-Prüfung | Genau 4 Fallen, höchstens 2 Hilfsmittel, Startschutz, Abstände, Objekte in Wänden, Befestigung; Verstöße rot im Raster, Liste mit Sprung zur Stelle |
 | Zeitleiste | Alle periodischen Fallen ablaufen lassen oder zu einem Tick springen; Zyklus des ausgewählten Elements als Streifen |
 | Testen und Beweisen | Testen von vorn oder „Test ab hier“; nach dem Tod sofort zurück mit markiertem Todesort und Spur; Heatmap aller Tode; Beweislauf setzt das Par, schnellere Läufe senken es |
 | Speichern | Eigene Festungen in IndexedDB, Entwurf bei jeder Änderung gespeichert, bewiesene Versionen mit Datum, Par, Beweis-Replay und Vorschaubild zum Wiederherstellen |
 
-**Abweichung vom Spielkonzept:** Läuft der Dieb am Boden gegen eine Wand, bleibt er stehen, statt umzudrehen.
-Weg kommt er per Sprung und Walljump; das neue Element **Prallbrett** (Kosten 1) drückt ihn an seiner Wand
-zurück. Im Tuning-Panel lässt sich das alte Umdrehen zum Vergleich einschalten. Seit dieser Änderung rechnet
-der Sim-Kern als Version 2.
+### Abweichungen vom Spielkonzept
+
+- **Raster 14 × 8 Felder statt 22 × 12**, damit am Handy alles größer und weniger fummelig ist. Gelände
+  besteht nur aus Blöcken zu 2 × 2 Feldern (7 × 4 Blöcke), Elemente sitzen weiter auf einzelnen Feldern.
+  Außerhalb des Rasters ist alles Mauer; Spiel und Editor zeigen sie als Steinrahmen.
+- **Eine feste Sprunghöhe**, passend zu den Blöcken: Sprung 2,46 Felder hoch (ein Block und etwas Luft, zwei
+  Blöcke nie) und 3,84 Felder weit, Walljump 2,0 Felder, Sprungfeder 4,4 Felder; Laufen 5,6 Felder/s,
+  Coyote 5 Ticks, Puffer 6 Ticks. Die variable Sprunghöhe bleibt im Tuning-Panel als A/B-Variante.
+- **Genau 4 Fallen pro Base** statt eines Fallenbudgets. Hilfsmittel (Sprungfeder, Bröckelboden, Schalter
+  + Tor, Prallbrett) zählen nicht dazu, höchstens 2 sind erlaubt. Im Duell später 2 Fallen und 1 Hilfsmittel.
+- **Stehenbleiben an Wänden:** Läuft der Dieb am Boden gegen eine Wand, bleibt er stehen, statt umzudrehen.
+  Weg kommt er per Sprung und Walljump; das Hilfsmittel **Prallbrett** drückt ihn an seiner Wand zurück. Im
+  Tuning-Panel lässt sich das alte Umdrehen zum Vergleich einschalten.
+
+Der Sim-Kern rechnet seit diesen Änderungen als Version 3. Festungen aus dem alten Raster lassen sich nicht
+mehr öffnen; das Menü zeigt sie an, damit man sie löschen kann.
 
 ## Loslegen
 

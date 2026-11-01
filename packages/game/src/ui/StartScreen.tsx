@@ -9,11 +9,11 @@ export function StartScreen({ onGo }: { onGo: () => void }) {
         </svg>
       </div>
       <h1>Diebesgut</h1>
-      <p class="sub">Solo-Testversion · Meilenstein S0 „Laufgefühl“</p>
+      <p class="sub">Solo-Testversion · S1 „Festungs-Editor“</p>
       <button class="btn primary big" onClick={onGo}>
         Los
       </button>
-      <p class="hint">Ein Finger: Tippen springt, länger halten springt höher. Am PC geht auch die Leertaste.</p>
+      <p class="hint">Ein Finger: Tippen springt, an der Wand ist es ein Walljump. Am PC geht auch die Leertaste.</p>
     </div>
   );
 }

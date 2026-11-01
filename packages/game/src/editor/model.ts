@@ -1,9 +1,9 @@
 import {
+  BLOCK,
   DIR_DX,
   DIR_DY,
   ELEMENT_INFO,
   ET,
-  GRID_H,
   GRID_W,
   TERRAIN_BYTES,
   compareElements,
@@ -58,7 +58,7 @@ export function toDungeon(s: EdState): { d: Dungeon; ids: number[] } {
   const keys = [...s.keys].map((k) => ({ ...k })).sort((a, b) => a.y - b.y || a.x - b.x) as [Tile, Tile, Tile];
   return {
     d: {
-      format: 1,
+      format: 2,
       name: s.name,
       terrain: s.terrain,
       start: { ...s.start },
@@ -70,26 +70,17 @@ export function toDungeon(s: EdState): { d: Dungeon; ids: number[] } {
   };
 }
 
-/** Leere Festung: Außenmauer, Start unten links, Schlüssel am Boden, Truhe in der Mitte. */
+/** Leere Festung: Rundherum ist ohnehin Mauer; Start unten links, Schlüssel und Truhe am Boden. */
 export function emptyState(name: string): EdState {
-  const terrain = new Uint8Array(TERRAIN_BYTES);
-  for (let x = 0; x < GRID_W; x++) {
-    setSolid(terrain, x, 0, true);
-    setSolid(terrain, x, GRID_H - 1, true);
-  }
-  for (let y = 0; y < GRID_H; y++) {
-    setSolid(terrain, 0, y, true);
-    setSolid(terrain, GRID_W - 1, y, true);
-  }
   return {
     name,
-    terrain,
-    start: { x: 2, y: 10, dir: 1 },
-    chest: { x: 12, y: 4 },
+    terrain: new Uint8Array(TERRAIN_BYTES),
+    start: { x: 1, y: 7, dir: 1 },
+    chest: { x: 13, y: 7 },
     keys: [
-      { x: 7, y: 10 },
-      { x: 12, y: 10 },
-      { x: 17, y: 10 },
+      { x: 4, y: 7 },
+      { x: 7, y: 7 },
+      { x: 10, y: 7 },
     ],
     elements: [],
   };
@@ -129,16 +120,33 @@ export function findElement(s: EdState, uid: number): EdElement | undefined {
   return s.elements.find((e) => e.uid === uid);
 }
 
-export function budgetUsed(s: EdState): number {
-  return s.elements.reduce((sum, e) => sum + ELEMENT_INFO[e.type].cost, 0);
+/** Linke obere Kachel des 2 × 2-Blocks, in dem eine Kachel liegt. */
+export function blockOf(t: Tile): Tile {
+  return { x: t.x - (t.x % BLOCK), y: t.y - (t.y % BLOCK) };
+}
+
+/** Alle Kacheln der Blöcke, die die Kacheln berühren, jede nur einmal. */
+export function blockTiles(tiles: readonly Tile[]): Tile[] {
+  const seen = new Set<number>();
+  const out: Tile[] = [];
+  for (const t of tiles) {
+    const b = blockOf(t);
+    if (seen.has(b.y * GRID_W + b.x)) continue;
+    seen.add(b.y * GRID_W + b.x);
+    for (let dy = 0; dy < BLOCK; dy++) for (let dx = 0; dx < BLOCK; dx++) out.push({ x: b.x + dx, y: b.y + dy });
+  }
+  return out;
 }
 
 // ------------------------------------------------------------------ Befehle
 
-/** Gelände an einzelnen Kacheln setzen; liefert denselben Zustand, wenn sich nichts ändert. */
+/**
+ * Gelände setzen, immer in ganzen 2 × 2-Blöcken: Jede berührte Kachel setzt ihren ganzen Block.
+ * Liefert denselben Zustand, wenn sich nichts ändert.
+ */
 export function paint(s: EdState, tiles: readonly Tile[], on: boolean): EdState {
   let terrain: Uint8Array | null = null;
-  for (const t of tiles) {
+  for (const t of blockTiles(tiles)) {
     if (!inGrid(t.x, t.y) || isSolid(s, t.x, t.y) === on) continue;
     terrain ??= s.terrain.slice();
     setSolid(terrain, t.x, t.y, on);
@@ -187,7 +195,7 @@ export function defaultParams(s: EdState, type: ElementType, x: number, y: numbe
       p[0] = x >= GRID_W / 2 ? 0 : 1;
       break;
     case ET.GATE:
-      p[0] = x + 3 < GRID_W - 1 ? 3 : -3;
+      p[0] = x + 3 < GRID_W ? 3 : -3;
       break;
   }
   return p;

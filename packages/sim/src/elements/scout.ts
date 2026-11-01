@@ -1,4 +1,4 @@
-import { BOLT_SPEED } from '../constants';
+import { BOLT_SPEED, GRID_W } from '../constants';
 import type { Dungeon, Element } from '../dungeon';
 import { rectsOverlap } from '../shapes';
 import { freeRun } from '../terrain';
@@ -20,7 +20,7 @@ export function scoutDir(el: Element): 1 | -1 {
 export function scoutSight(el: Element, d: Dungeon): { from: number; to: number } {
   const dir = scoutDir(el);
   const eye = (el.x << 8) + 128;
-  const n = freeRun(d, el.x + dir, el.y, dir, 0, 22);
+  const n = freeRun(d, el.x + dir, el.y, dir, 0, GRID_W);
   return dir > 0 ? { from: eye, to: (el.x + 1 + n) << 8 } : { from: (el.x - n) << 8, to: eye };
 }
 

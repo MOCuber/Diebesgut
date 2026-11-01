@@ -19,9 +19,9 @@ export interface Element {
 }
 
 export interface Dungeon {
-  format: 1;
+  format: 2;
   name: string;
-  /** 22 × 12 Bits = 33 Byte */
+  /** 14 × 8 Bits = 14 Byte */
   terrain: Uint8Array;
   start: { x: number; y: number; dir: 1 | -1 };
   chest: Tile;
@@ -30,7 +30,8 @@ export interface Dungeon {
   elements: Element[];
 }
 
-export const DUNGEON_FORMAT = 1;
+/** 1: 22 × 12 Felder (S0, S1); 2: 14 × 8 Felder mit Blöcken */
+export const DUNGEON_FORMAT = 2;
 export const MAX_NAME_LENGTH = 40;
 
 // ---------------------------------------------------------------- kanonische Form
@@ -52,7 +53,7 @@ export function canonicalize(d: Dungeon): Dungeon {
     .sort((a, b) => a.y - b.y || a.x - b.x) as [Tile, Tile, Tile];
   const elements = d.elements.map((e) => ({ type: e.type, x: e.x, y: e.y, p: e.p.slice() })).sort(compareElements);
   return {
-    format: 1,
+    format: 2,
     name: d.name,
     terrain: d.terrain.slice(),
     start: { x: d.start.x, y: d.start.y, dir: d.start.dir },
@@ -101,6 +102,7 @@ export function encode(d: Dungeon, withName = true): Uint8Array {
 export function decode(bytes: Uint8Array): Dungeon {
   const r = new ByteReader(bytes);
   const format = r.u8();
+  if (format === 1) throw new Error('Altes Dungeon-Format (22 × 12 Felder), es wird nicht mehr unterstützt');
   if (format !== DUNGEON_FORMAT) throw new Error(`Unbekanntes Dungeon-Format ${format}`);
   const terrain = r.bytes(TERRAIN_BYTES);
   const start = { x: r.u8(), y: r.u8(), dir: (r.u8() === 0 ? 1 : -1) as 1 | -1 };
@@ -122,7 +124,7 @@ export function decode(bytes: Uint8Array): Dungeon {
     elements.push({ type, x, y, p });
   }
   const name = r.done ? '' : utf8Decode(r.bytes(r.u8()));
-  return canonicalize({ format: 1, name, terrain, start, chest, keys, elements });
+  return canonicalize({ format: 2, name, terrain, start, chest, keys, elements });
 }
 
 /** SHA-256 der kanonischen Kodierung ohne Namen, als Hex-Text. */
@@ -133,7 +135,7 @@ export function dungeonHash(d: Dungeon): string {
 // ---------------------------------------------------------------- Prüfung
 
 export interface Problem {
-  code: 'format' | 'bounds' | 'wall' | 'spacing' | 'startzone' | 'budget' | 'maxType' | 'maxTotal' | 'param' | 'place' | 'unavailable' | 'name';
+  code: 'format' | 'bounds' | 'wall' | 'spacing' | 'startzone' | 'traps' | 'helpers' | 'param' | 'place' | 'unavailable' | 'name';
   msg: string;
   x: number;
   y: number;
@@ -150,18 +152,12 @@ export function footprint(el: Element, d: Dungeon): Tile[] {
   return out;
 }
 
-export function elementCost(d: Dungeon): number {
-  let sum = 0;
-  for (const el of d.elements) sum += ELEMENT_INFO[el.type]?.cost ?? 0;
-  return sum;
-}
-
 /** Prüft alle Bauregeln aus dem Spielkonzept. Leere Liste = gültig. */
 export function validate(d: Dungeon, rules: BuildRules = FORTRESS_RULES): Problem[] {
   const out: Problem[] = [];
   const add = (code: Problem['code'], msg: string, x: number, y: number, el = -1) => out.push({ code, msg, x, y, el });
 
-  if (d.terrain.length !== TERRAIN_BYTES) add('format', 'Das Gelände hat nicht 22 × 12 Kacheln', 0, 0);
+  if (d.terrain.length !== TERRAIN_BYTES) add('format', `Das Gelände hat nicht ${GRID_W} × ${GRID_H} Felder`, 0, 0);
   if (d.keys.length !== 3) add('format', 'Ein Dungeon hat genau 3 Schlüssel', 0, 0);
   if (Array.from(d.name).length > MAX_NAME_LENGTH) add('name', `Der Name ist länger als ${MAX_NAME_LENGTH} Zeichen`, 0, 0);
 
@@ -182,12 +178,11 @@ export function validate(d: Dungeon, rules: BuildRules = FORTRESS_RULES): Proble
       const b = objects[j];
       const dx = a.x - b.x;
       const dy = a.y - b.y;
-      if (dx * dx + dy * dy < minD2) add('spacing', `${a.name} und ${b.name} brauchen ${rules.minSpacing} Kacheln Abstand`, b.x, b.y);
+      if (dx * dx + dy * dy < minD2) add('spacing', `${a.name} und ${b.name} brauchen ${rules.minSpacing} Felder Abstand`, b.x, b.y);
     }
   }
 
   // Elemente
-  const perType = new Array<number>(ELEMENT_INFO.length).fill(0);
   const zone2 = rules.startZone * rules.startZone;
   d.elements.forEach((el, id) => {
     const info = ELEMENT_INFO[el.type];
@@ -195,7 +190,6 @@ export function validate(d: Dungeon, rules: BuildRules = FORTRESS_RULES): Proble
       add('format', `Unbekannter Elementtyp ${el.type}`, el.x, el.y, id);
       return;
     }
-    perType[el.type]++;
     const behavior = BEHAVIORS[el.type];
     if (!behavior) add('unavailable', `${info.name} gibt es in dieser Version noch nicht`, el.x, el.y, id);
     if (!inGrid(el.x, el.y)) {
@@ -217,25 +211,41 @@ export function validate(d: Dungeon, rules: BuildRules = FORTRESS_RULES): Proble
       const dx = t.x - d.start.x;
       const dy = t.y - d.start.y;
       if (dx * dx + dy * dy <= zone2) {
-        add('startzone', `${info.name} liegt im Startschutz (${rules.startZone} Kacheln)`, el.x, el.y, id);
+        add('startzone', `${info.name} liegt im Startschutz (${rules.startZone} Felder)`, el.x, el.y, id);
         break;
       }
     }
   });
 
-  const cost = elementCost(d);
-  if (cost > rules.budget) add('budget', `Budget überschritten: ${cost} von ${rules.budget} Punkten`, 0, 0);
-  perType.forEach((n, type) => {
-    if (n > rules.maxPerType) add('maxType', `Höchstens ${rules.maxPerType}× ${ELEMENT_INFO[type].name}`, 0, 0);
-  });
-  if (d.elements.length > rules.maxElements) add('maxTotal', `Höchstens ${rules.maxElements} Elemente`, 0, 0);
+  // Jede Base hat genau rules.traps Fallen, Hilfsmittel zählen extra.
+  const { traps, helpers } = countElements(d);
+  if (traps < rules.traps) {
+    const n = rules.traps - traps;
+    add('traps', `Es ${n === 1 ? 'fehlt noch 1 Falle' : `fehlen noch ${n} Fallen`} (genau ${rules.traps})`, 0, 0);
+  } else if (traps > rules.traps) {
+    add('traps', `${traps} Fallen sind zu viele, genau ${rules.traps} sind erlaubt`, 0, 0);
+  }
+  if (helpers > rules.maxHelpers) add('helpers', `Höchstens ${rules.maxHelpers} Hilfsmittel (Sprungfeder, Bröckelboden, Schalter + Tor, Prallbrett)`, 0, 0);
   return out;
+}
+
+/** Tödliche Fallen und Hilfsmittel eines Dungeons. */
+export function countElements(d: Pick<Dungeon, 'elements'>): { traps: number; helpers: number } {
+  let traps = 0;
+  let helpers = 0;
+  for (const el of d.elements) {
+    const info = ELEMENT_INFO[el.type];
+    if (!info) continue;
+    if (info.trap) traps++;
+    else helpers++;
+  }
+  return { traps, helpers };
 }
 
 // ---------------------------------------------------------------- JSON (Inhalte, Golden Replays)
 
 /**
- * Lesbares Format für mitgelieferte Level. rows: 12 Zeilen à 22 Zeichen, '#' ist fest.
+ * Lesbares Format für mitgelieferte Level. rows: 8 Zeilen à 14 Zeichen, '#' ist fest; außerhalb ist alles fest.
  * Start, Schlüssel und Truhe stehen entweder als Felder darin oder als Buchstaben in rows:
  * 'S' Start, 'K' Schlüssel, 'T' Truhe. Elementparameter heißen wie in ELEMENT_INFO.
  */
@@ -276,7 +286,7 @@ export function fromJson(j: DungeonJson): Dungeon {
     return { type: info.type, x: e.x, y: e.y, p: info.params.map((spec) => Number(e[spec.key] ?? spec.def)) };
   });
   return canonicalize({
-    format: 1,
+    format: 2,
     name: j.name,
     terrain,
     start: { x: s.x, y: s.y, dir: dirRaw < 0 ? -1 : 1 },

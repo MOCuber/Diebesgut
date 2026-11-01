@@ -46,7 +46,7 @@ export function MenuScreen({ rooms, prefs, tuning, onPrefs, onResetTuning, onPla
   }, []);
 
   const physTuned = isTuned({ ...tuning, variableJump: DEFAULT_PHYSICS.variableJump });
-  const fixedJump = !prefs.blind && tuning.variableJump === 0;
+  const variableJump = !prefs.blind && tuning.variableJump !== DEFAULT_PHYSICS.variableJump;
 
   /** Neue Festung aus einer Vorlage; Gelände ist frei editierbar, Vorlagen dienen als Start. */
   const create = async (template: Dungeon | null) => {
@@ -69,7 +69,7 @@ export function MenuScreen({ rooms, prefs, tuning, onPrefs, onResetTuning, onPla
         </button>
       </header>
 
-      {(physTuned || fixedJump || prefs.blind) && (
+      {(physTuned || variableJump || prefs.blind) && (
         <div class="notice">
           {prefs.blind && (
             <span>
@@ -77,9 +77,9 @@ export function MenuScreen({ rooms, prefs, tuning, onPrefs, onResetTuning, onPla
               {prefs.blind.revealed ? ` (${prefs.blind.map[prefs.blind.current - 1] ? 'variabel' : 'fest'})` : ''}
             </span>
           )}
-          {fixedJump && <span>Feste Sprunghöhe aktiv.</span>}
-          {physTuned && <span>Tuning aktiv: Die Physik weicht vom Spielkonzept ab, Bestzeiten werden nicht gespeichert.</span>}
-          {(physTuned || fixedJump) && (
+          {variableJump && <span>Variable Sprunghöhe aktiv (halten = höher).</span>}
+          {physTuned && <span>Tuning aktiv: Die Physik weicht vom Standard ab, Bestzeiten werden nicht gespeichert.</span>}
+          {(physTuned || variableJump) && (
             <button class="btn small" onClick={onResetTuning}>
               Physik zurücksetzen
             </button>
@@ -92,7 +92,7 @@ export function MenuScreen({ rooms, prefs, tuning, onPrefs, onResetTuning, onPla
         {rooms.map((room, i) => {
           const hash = dungeonHash(room.dungeon);
           const rec = records.get(recordId(hash));
-          const fixed = records.get(recordId(hash, true));
+          const alt = records.get(recordId(hash, true));
           return (
             <button class="room" key={room.id} onClick={() => onPlay(room)}>
               <span class="room-no">{i + 1}</span>
@@ -101,8 +101,8 @@ export function MenuScreen({ rooms, prefs, tuning, onPrefs, onResetTuning, onPla
                 <span class="room-goal">{room.goal}</span>
                 <span class="room-stats">
                   {rec?.bestTicks ? `Bestzeit ${seconds(rec.bestTicks)} s` : 'noch nicht geschafft'}
-                  {fixed?.bestTicks ? ` · fest ${seconds(fixed.bestTicks)} s` : ''}
-                  {rec || fixed ? ` · ${(rec?.attempts ?? 0) + (fixed?.attempts ?? 0)} Versuche` : ''}
+                  {alt?.bestTicks ? ` · variabel ${seconds(alt.bestTicks)} s` : ''}
+                  {rec || alt ? ` · ${(rec?.attempts ?? 0) + (alt?.attempts ?? 0)} Versuche` : ''}
                 </span>
               </span>
             </button>
@@ -134,22 +134,29 @@ export function MenuScreen({ rooms, prefs, tuning, onPrefs, onResetTuning, onPla
       )}
       <div class="fortresses">
         {fortresses?.map((f) => {
-          const latest = f.versions[f.versions.length - 1];
-          const draftHash = dungeonHash(decode(f.draft));
+          // Festungen aus dem alten Raster (22 × 12) lassen sich nicht mehr lesen, nur noch löschen.
+          let draftHash: string | null = null;
+          try {
+            draftHash = dungeonHash(decode(f.draft));
+          } catch {
+            draftHash = null;
+          }
+          const old = draftHash === null;
+          const latest = old ? undefined : f.versions[f.versions.length - 1];
           const proven = f.versions.some((v) => v.hash === draftHash);
           const rec = latest ? records.get(recordId(latest.hash)) : undefined;
           return (
             <div class="fortress" key={f.id}>
-              <Thumb data={latest && proven ? latest.dungeon : f.draft} width={132} />
+              {old ? <div class="ed-thumb old">22 × 12</div> : <Thumb data={latest && proven ? latest.dungeon : f.draft} width={132} />}
               <div class="fortress-body">
                 <b>{f.name}</b>
                 <small>
-                  {latest ? `Par ${seconds(latest.par)} s` : 'noch nicht bewiesen'}
+                  {old ? 'Altes Raster (22 × 12 Felder), bitte neu bauen' : latest ? `Par ${seconds(latest.par)} s` : 'noch nicht bewiesen'}
                   {latest && !proven ? ' · Entwurf geändert' : ''}
                   {rec?.bestTicks ? ` · Bestzeit ${seconds(rec.bestTicks)} s` : ''}
                 </small>
                 <div class="seg">
-                  <button class="btn small" onClick={() => onEdit(f.id)}>
+                  <button class="btn small" disabled={old} onClick={() => onEdit(f.id)}>
                     Bearbeiten
                   </button>
                   <button

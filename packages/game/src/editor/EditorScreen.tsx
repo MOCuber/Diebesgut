@@ -2,6 +2,7 @@ import {
   DEFAULT_PHYSICS,
   ELEMENT_INFO,
   FORTRESS_RULES,
+  countElements,
   createRun,
   decode,
   dungeonHash,
@@ -28,7 +29,6 @@ import { PlayScreen } from '../ui/PlayScreen';
 import { cycleLabel, cycleLevel } from './cycle';
 import { History } from './history';
 import {
-  budgetUsed,
   deleteElement,
   duplicateElement,
   elementAt,
@@ -107,6 +107,7 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
   const [toast, setToast] = useState<string | null>(null);
   const [testRun, setTestRun] = useState<{ proof: boolean; from?: { x: number; y: number; dir: 1 | -1 } } | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [, setVersion] = useState(0);
 
   const edRef = useRef<EdState | null>(null);
@@ -135,8 +136,14 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
   useEffect(() => {
     void getFortress(fortressId).then((f) => {
       if (!f) return;
+      let s: EdState;
+      try {
+        s = fromDungeon(decode(f.draft));
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : String(e));
+        return;
+      }
       setFortress(f);
-      const s = fromDungeon(decode(f.draft));
       edRef.current = s;
       setEdState(s);
     });
@@ -287,6 +294,7 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
           heat: showHeatRef.current ? (fortressRef.current?.deaths ?? null) : null,
           death: showTrailRef.current && lt ? lt.death : null,
           rect: g?.kind === 'rect' ? { a: g.a, b: g.b, fill: g.fill } : null,
+          blocks: tl.kind === 'brush' || tl.kind === 'erase' || tl.kind === 'rect',
           magnifier: magRef.current,
           hover: hoverRef.current,
         };
@@ -342,8 +350,9 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
         p[0] = dx;
         p[1] = dy;
       } else if (kind === 'gate') {
-        p[0] = Math.max(-8, Math.min(8, tx - e.x));
-        p[1] = Math.max(-8, Math.min(8, ty - 1 - e.y));
+        const [gx, gy] = ELEMENT_INFO[e.type].params;
+        p[0] = Math.max(gx.min, Math.min(gx.max, tx - e.x));
+        p[1] = Math.max(gy.min, Math.min(gy.max, ty - 1 - e.y));
       } else if (kind === 'radius') {
         p[0] = Math.max(1, Math.min(3, Math.round(Math.hypot(t.x - (e.x + 0.5), t.y - (e.y + 0.5)))));
       } else {
@@ -686,6 +695,16 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
 
   // ------------------------------------------------------------------ Darstellung
 
+  if (loadError) {
+    return (
+      <div class="screen list-screen">
+        <p>Diese Festung lässt sich nicht öffnen: {loadError}. Festungen aus dem alten Raster (22 × 12 Felder) müssen neu gebaut werden.</p>
+        <button class="btn" onClick={onExit}>
+          Zurück zum Menü
+        </button>
+      </div>
+    );
+  }
   if (!ed || !derived || !fortress) return <div class="screen list-screen">Lade Festung …</div>;
 
   if (testRun && testRoom) {
@@ -704,7 +723,7 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
     );
   }
 
-  const budget = budgetUsed(ed);
+  const counts = countElements(ed);
   const selEl = sel?.kind === 'el' ? findElement(ed, sel.uid) : undefined;
   const selTool = (t: Tool) => {
     setTool(t);
@@ -752,8 +771,17 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
             {ed.name}
           </button>
         )}
-        <span class={`chip ${budget > FORTRESS_RULES.budget ? 'bad' : ''}`} title="Fallenbudget">
-          {budget}/{FORTRESS_RULES.budget}
+        <span
+          class={`chip ${counts.traps === FORTRESS_RULES.traps ? 'good' : counts.traps > FORTRESS_RULES.traps ? 'bad' : 'warn'}`}
+          title={`Genau ${FORTRESS_RULES.traps} tödliche Fallen`}
+        >
+          Fallen {counts.traps}/{FORTRESS_RULES.traps}
+        </span>
+        <span
+          class={`chip ${counts.helpers > FORTRESS_RULES.maxHelpers ? 'bad' : ''}`}
+          title={`Höchstens ${FORTRESS_RULES.maxHelpers} Hilfsmittel, sie zählen nicht als Fallen`}
+        >
+          Hilfen {counts.helpers}/{FORTRESS_RULES.maxHelpers}
         </span>
         <span class={`chip ${version ? 'good' : 'warn'}`}>{status}</span>
         {derived.problems.length > 0 && (
@@ -820,7 +848,7 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
               </button>
             </div>
           ) : (
-            <Palette tool={tool} isTool={isTool} onTool={selTool} />
+            <Palette tool={tool} isTool={isTool} onTool={selTool} counts={counts} />
           )}
         </aside>
       </div>
@@ -941,10 +969,16 @@ export function EditorScreen({ fortressId, phys, tuning, prefs, onTuning, onPref
 
 // ------------------------------------------------------------------ Teile
 
-function Palette({ tool, isTool, onTool }: { tool: Tool; isTool(k: string, extra?: string | number): boolean; onTool(t: Tool): void }) {
+function Palette(props: { tool: Tool; isTool(k: string, extra?: string | number): boolean; onTool(t: Tool): void; counts: { traps: number; helpers: number } }) {
+  const { tool, isTool, onTool, counts } = props;
+  const elementButton = (info: (typeof ELEMENT_INFO)[number]) => (
+    <button key={info.type} class={`ed-tool el ${isTool('place', info.type) ? 'active' : ''}`} onClick={() => onTool({ kind: 'place', type: info.type })} title={info.desc}>
+      <span>{info.name}</span>
+    </button>
+  );
   return (
     <div class="ed-palette">
-      <span class="ed-label">Gelände</span>
+      <span class="ed-label">Gelände in 2 × 2-Blöcken</span>
       <div class="ed-grid">
         {(['select', 'brush', 'erase', 'rect'] as const).map((k) => (
           <button key={k} class={`ed-tool ${isTool(k) ? 'active' : ''}`} onClick={() => onTool({ kind: k })}>
@@ -960,15 +994,14 @@ function Palette({ tool, isTool, onTool }: { tool: Tool; isTool(k: string, extra
           </button>
         ))}
       </div>
-      <span class="ed-label">Elemente mit Kosten</span>
-      <div class="ed-grid">
-        {ELEMENT_INFO.map((info) => (
-          <button key={info.type} class={`ed-tool el ${isTool('place', info.type) ? 'active' : ''}`} onClick={() => onTool({ kind: 'place', type: info.type })} title={info.desc}>
-            <span>{info.name}</span>
-            <b>{info.cost}</b>
-          </button>
-        ))}
-      </div>
+      <span class="ed-label">
+        Fallen · genau {FORTRESS_RULES.traps} <b class={counts.traps === FORTRESS_RULES.traps ? 'ok' : 'off'}>{counts.traps}</b>
+      </span>
+      <div class="ed-grid">{ELEMENT_INFO.filter((info) => info.trap).map(elementButton)}</div>
+      <span class="ed-label">
+        Hilfsmittel · bis {FORTRESS_RULES.maxHelpers} <b class={counts.helpers > FORTRESS_RULES.maxHelpers ? 'off' : 'ok'}>{counts.helpers}</b>
+      </span>
+      <div class="ed-grid">{ELEMENT_INFO.filter((info) => !info.trap).map(elementButton)}</div>
       <button class={`ed-tool wide ${isTool('testFrom') ? 'active' : ''}`} onClick={() => onTool({ kind: 'testFrom' })}>
         Test ab hier …
       </button>
@@ -981,7 +1014,7 @@ function Palette({ tool, isTool, onTool }: { tool: Tool; isTool(k: string, extra
               ? 'Ins Raster tippen verschiebt das Objekt.'
               : tool.kind === 'select'
                 ? 'Tippen wählt aus, lange drücken verschiebt. Zwei Finger zoomen.'
-                : 'Ziehen malt; jeder Strich ist ein Schritt zum Rückgängigmachen.'}
+                : 'Ziehen malt ganze 2 × 2-Blöcke; jeder Strich ist ein Schritt zum Rückgängigmachen.'}
       </p>
     </div>
   );
@@ -998,7 +1031,7 @@ function ElementProps(props: {
   return (
     <div class="ed-props">
       <h3>
-        {info.name} <span class="chip">{info.cost}</span>
+        {info.name} <span class="chip">{info.trap ? 'Falle' : 'Hilfsmittel'}</span>
       </h3>
       <p class="ed-hint">{info.desc}</p>
       {info.params.map((spec, i) => {
@@ -1060,7 +1093,12 @@ function CycleStrip({ el, d }: { el: { type: ElementType; x: number; y: number; 
 export function Thumb({ data, width = 110 }: { data: Uint8Array; width?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    if (ref.current) drawThumb(ref.current, decode(data), width);
+    if (!ref.current) return;
+    try {
+      drawThumb(ref.current, decode(data), width);
+    } catch {
+      // altes Format: kein Vorschaubild
+    }
   }, [data, width]);
   return <canvas ref={ref} class="ed-thumb" />;
 }

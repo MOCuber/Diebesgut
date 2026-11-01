@@ -1,4 +1,4 @@
-import { BOLT_SPEED } from '../constants';
+import { BOLT_SPEED, GRID_W } from '../constants';
 import type { Dungeon, Element } from '../dungeon';
 import type { ShapeList } from '../shapes';
 import { freeRun, solid } from '../terrain';
@@ -18,7 +18,7 @@ const MOUTH = 120;
 
 /** Flugstrecke ab der Befestigung bis zur Wand, in SE. */
 export function crossbowRange(el: Element, d: Dungeon): number {
-  return freeRun(d, el.x, el.y, DIR_DX[el.p[0]], DIR_DY[el.p[0]], 22) << 8;
+  return freeRun(d, el.x, el.y, DIR_DX[el.p[0]], DIR_DY[el.p[0]], GRID_W) << 8;
 }
 
 /**

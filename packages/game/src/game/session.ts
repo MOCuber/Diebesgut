@@ -69,14 +69,17 @@ export interface SessionHooks {
   hud(tick: number, keys: number, best: number): void;
   won(info: WinInfo): void;
   ended?(info: EndInfo): void;
+  /** true: der Lauf wartet auf „Tippen zum Starten“, false: er läuft */
+  ready?(waiting: boolean): void;
 }
 
 /** So lange zeigt ein Test noch die offene Truhe, bevor es zurück in den Editor geht. */
 const TEST_WIN_MS = 700;
 
-type State = 'play' | 'dying' | 'won';
+/** ready: Der Lauf steht in Tick 0 und beginnt erst mit einem Tippen. */
+type State = 'ready' | 'play' | 'dying' | 'won';
 
-/** Sammelt die Ergebnisse nach der Physik getrennt: Standard, feste Sprunghöhe oder gar nicht. */
+/** Sammelt die Ergebnisse nach der Physik getrennt: Standard, die andere Sprungvariante oder gar nicht. */
 export function recordKey(hash: string, phys: Physics): string | null {
   if (isDefaultPhysics(phys)) return recordId(hash);
   if (isDefaultPhysics({ ...phys, variableJump: DEFAULT_PHYSICS.variableJump })) return recordId(hash, true);
@@ -89,7 +92,7 @@ export class Session {
   phys: Physics;
   run: Run;
   prev: Run;
-  state: State = 'play';
+  state: State = 'ready';
   paused = false;
   hitboxes = false;
   best = 0;
@@ -183,13 +186,22 @@ export class Session {
     this.rec = new Recorder();
     this.trail = [this.run.thief.x + (this.phys.thiefW >> 1), this.run.thief.y + (this.phys.thiefH >> 1)];
     this.endedSent = false;
-    this.state = 'play';
+    this.state = 'ready';
     this.acc = 0;
     this.attempt++;
-    this.startedAt = performance.now();
     this.input.resetForNewRun();
     this.fx.clear();
     this.pushHud();
+    this.hooks.ready?.(true);
+  }
+
+  /** Das Tippen zum Starten: Es startet nur den Lauf und zählt nicht als Sprung. */
+  private begin(now: number): void {
+    this.state = 'play';
+    this.acc = 0;
+    this.startedAt = now;
+    this.input.resetForNewRun();
+    this.hooks.ready?.(false);
   }
 
   private pushHud(): void {
@@ -203,7 +215,9 @@ export class Session {
     const elapsed = Math.min(now - this.last, 250); // nach Pausen nicht nachholen
     this.last = now;
     if (!this.paused) {
-      if (this.state === 'play') {
+      if (this.state === 'ready') {
+        if (this.input.takePress()) this.begin(now);
+      } else if (this.state === 'play') {
         this.acc += elapsed;
         while (this.acc >= DT && this.state === 'play') {
           this.tick(now);

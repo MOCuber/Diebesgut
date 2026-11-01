@@ -92,11 +92,15 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 // ------------------------------------------------------------------ Gelände
 
-export function drawTerrain(ctx: CanvasRenderingContext2D, d: Dungeon): void {
-  for (let ty = 0; ty < GRID_H; ty++) {
-    for (let tx = 0; tx < GRID_W; tx++) {
-      const X = tx << 8;
-      const Y = ty << 8;
+/** Sichtbarer Steinrahmen um das Raster in Feldern; außerhalb des Rasters ist alles fest. */
+export const FRAME = 0.4;
+
+/** Gelände; ring > 0 zeichnet so viele Kachelreihen der Außenmauer mit (der Aufrufer schneidet zu). */
+export function drawTerrain(ctx: CanvasRenderingContext2D, d: Dungeon, ring = 0): void {
+  for (let ty = -ring; ty < GRID_H + ring; ty++) {
+    for (let tx = -ring; tx < GRID_W + ring; tx++) {
+      const X = tx * 256;
+      const Y = ty * 256;
       if (!solid(d, tx, ty)) {
         ctx.fillStyle = COLORS.bg;
         ctx.fillRect(X, Y, 256, 256);
@@ -120,6 +124,17 @@ export function drawTerrain(ctx: CanvasRenderingContext2D, d: Dungeon): void {
       if (!solid(d, tx - 1, ty)) ctx.fillRect(X, Y, 12, 256);
       if (!solid(d, tx + 1, ty)) ctx.fillRect(X + 244, Y, 12, 256);
     }
+  }
+  if (ring > 0) {
+    // Die Außenmauer etwas dunkler: Sie gehört nicht zum Raster und lässt sich nicht bearbeiten.
+    const r = ring * 256;
+    const w = GRID_W << 8;
+    const h = GRID_H << 8;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(-r, -r, w + 2 * r, r);
+    ctx.fillRect(-r, h, w + 2 * r, r);
+    ctx.fillRect(-r, 0, r, h);
+    ctx.fillRect(w, 0, r, h);
   }
 }
 

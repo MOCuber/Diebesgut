@@ -1,8 +1,8 @@
 import { GRID_H, GRID_W, type Dungeon, type Run } from '@diebesgut/sim';
-import { COLORS, drawChest, drawElements, drawHitboxes, drawKeys, drawParticles, drawStatic, drawTerrain, drawThief } from './draw';
+import { COLORS, FRAME, drawChest, drawElements, drawHitboxes, drawKeys, drawParticles, drawStatic, drawTerrain, drawThief } from './draw';
 import type { Effects } from './effects';
 
-export { COLORS, drawThief };
+export { COLORS, FRAME, drawThief };
 
 export interface FrameState {
   d: Dungeon;
@@ -61,7 +61,8 @@ export class Renderer {
     ctx.fillStyle = COLORS.page;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     if (this.cacheFor !== f.d) this.buildCache(f.d);
-    if (this.cache) ctx.drawImage(this.cache, Math.round(this.ox * this.dpr), Math.round(this.oy * this.dpr));
+    const frame = FRAME * this.tile;
+    if (this.cache) ctx.drawImage(this.cache, Math.round((this.ox - frame) * this.dpr), Math.round((this.oy - frame) * this.dpr));
 
     this.toSE(ctx, this.ox, this.oy);
     const t = f.time;
@@ -84,15 +85,17 @@ export class Renderer {
   }
 
   private buildCache(d: Dungeon): void {
+    // Gelände samt Steinrahmen: Außerhalb des Rasters ist alles fest.
     const c = this.cache ?? document.createElement('canvas');
-    c.width = Math.ceil(GRID_W * this.tile * this.dpr);
-    c.height = Math.ceil(GRID_H * this.tile * this.dpr);
+    const frame = FRAME * this.tile;
+    c.width = Math.ceil((GRID_W * this.tile + 2 * frame) * this.dpr);
+    c.height = Math.ceil((GRID_H * this.tile + 2 * frame) * this.dpr);
     const ctx = c.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, c.width, c.height);
-    this.toSE(ctx, 0, 0);
-    drawTerrain(ctx, d);
+    this.toSE(ctx, frame, frame);
+    drawTerrain(ctx, d, 1);
     drawStatic(ctx, d);
     this.cache = c;
     this.cacheFor = d;

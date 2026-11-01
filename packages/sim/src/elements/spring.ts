@@ -2,7 +2,7 @@ import { rectsOverlap } from '../shapes';
 import { solid } from '../terrain';
 import type { ElementBehavior } from './behavior';
 
-// Sprungfeder: schleudert den Dieb mit vy = springVy (90) nach oben, 5,1 Kacheln hoch.
+// Sprungfeder: schleudert den Dieb mit vy = springVy (84) nach oben, 4,4 Felder hoch (gut zwei Blöcke).
 
 /** Auslösefläche: der Federteller im unteren Teil der Kachel (relativ zur Kachel, SE). */
 export const SPRING_BOX = { dx: 40, dy: 150, w: 176, h: 106 } as const;

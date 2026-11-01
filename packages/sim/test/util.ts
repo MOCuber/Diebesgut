@@ -1,31 +1,26 @@
 import { fromJson, type Dungeon, type DungeonJson, type TickInput } from '../src';
 
-export const FLAT_ROWS = [
-  '######################',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '#....................#',
-  '######################',
-];
+/** Leerer Raum 14 × 8; außerhalb des Rasters ist alles fest, also Boden, Decke und Wände. */
+export const FLAT_ROWS = ['..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............'];
 
-/** Flacher Raum mit Start (3, 10) nach rechts und Schlüsseln/Truhe oben, außer Reichweite. */
+/** Zeilen von FLAT_ROWS mit einzelnen geänderten Feldern [x, y, Zeichen]. */
+export function rowsWith(changes: [number, number, string][]): string[] {
+  const rows = [...FLAT_ROWS];
+  for (const [x, y, ch] of changes) rows[y] = rows[y].slice(0, x) + ch + rows[y].slice(x + 1);
+  return rows;
+}
+
+/** Flacher Raum mit Start (2, 7) nach rechts und Schlüsseln/Truhe oben, außer Reichweite. */
 export function flatRoom(extra: Partial<DungeonJson> = {}): Dungeon {
   return fromJson({
     name: 'Test',
     rows: FLAT_ROWS,
-    start: { x: 3, y: 10, dir: 1 },
-    chest: { x: 18, y: 1 },
+    start: { x: 2, y: 7, dir: 1 },
+    chest: { x: 13, y: 1 },
     keys: [
-      { x: 2, y: 1 },
-      { x: 8, y: 1 },
-      { x: 13, y: 1 },
+      { x: 1, y: 1 },
+      { x: 5, y: 1 },
+      { x: 9, y: 1 },
     ],
     ...extra,
   });

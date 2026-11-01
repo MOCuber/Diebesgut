@@ -36,7 +36,10 @@ export interface ElementInfo {
   /** Name im JSON-Format */
   key: string;
   name: string;
+  /** Kosten im Fallenbudget des Spielkonzepts; die Testversion zählt stattdessen Fallen */
   cost: number;
+  /** tödliche Falle (zählt zu den Fallen einer Base) oder Hilfsmittel */
+  trap: boolean;
   /** eine Zeile für den Editor */
   desc: string;
   params: readonly ParamSpec[];
@@ -51,18 +54,20 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'spikes',
     name: 'Stacheln',
     cost: 1,
-    desc: 'Statisch, eine Kachel, an Boden, Wand oder Decke.',
+    trap: true,
+    desc: 'Statisch, ein Feld, an Boden, Wand oder Decke.',
     params: [{ key: 'dir', name: 'Ausrichtung', min: 0, max: 3, def: 0, labels: DIR4 }],
   },
-  { type: ET.SPRING, key: 'spring', name: 'Sprungfeder', cost: 1, desc: 'Schleudert den Dieb 5,1 Kacheln hoch.', params: [] },
-  { type: ET.SAW, key: 'saw', name: 'Säge', cost: 2, desc: 'Statisch, Trefferkreis Ø 1,2 Kacheln.', params: [] },
-  { type: ET.CRUMBLE, key: 'crumble', name: 'Bröckelboden', cost: 2, desc: 'Bricht 0,4 s nach dem Betreten, nach 3 s wieder da.', params: [] },
+  { type: ET.SPRING, key: 'spring', name: 'Sprungfeder', cost: 1, trap: false, desc: 'Schleudert den Dieb 4,4 Felder hoch, gut zwei Blöcke.', params: [] },
+  { type: ET.SAW, key: 'saw', name: 'Säge', cost: 2, trap: true, desc: 'Statisch, Trefferkreis Ø 1,2 Felder.', params: [] },
+  { type: ET.CRUMBLE, key: 'crumble', name: 'Bröckelboden', cost: 2, trap: false, desc: 'Bricht 0,4 s nach dem Betreten, nach 3 s wieder da.', params: [] },
   {
     type: ET.FLAME,
     key: 'flame',
     name: 'Flammendüse',
     cost: 3,
-    desc: 'Strahl bis 3 Kacheln lang, an und aus im Takt.',
+    trap: true,
+    desc: 'Strahl bis 3 Felder lang, an und aus im Takt.',
     params: [
       { key: 'dir', name: 'Richtung', min: 0, max: 3, def: 0, labels: DIR4 },
       { key: 'takt', name: 'Takt an/aus', min: 0, max: 2, def: 0, labels: ['1/1 s', '0,5/1,5 s', '1,5/0,5 s'] },
@@ -74,10 +79,11 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'gate',
     name: 'Schalter + Tor',
     cost: 3,
+    trap: false,
     desc: 'Der Schalter öffnet ein 1 × 3-Tor für eine feste Zeit.',
     params: [
-      { key: 'gx', name: 'Tor waagerecht', min: -8, max: 8, def: 3 },
-      { key: 'gy', name: 'Tor senkrecht', min: -8, max: 8, def: -2 },
+      { key: 'gx', name: 'Tor waagerecht', min: -6, max: 6, def: 3 },
+      { key: 'gy', name: 'Tor senkrecht', min: -6, max: 6, def: -2 },
       { key: 'dauer', name: 'Offen', min: 0, max: 2, def: 1, labels: ['2 s', '4 s', '6 s'] },
     ],
   },
@@ -86,7 +92,8 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'railsaw',
     name: 'Schienensäge',
     cost: 4,
-    desc: 'Pendelt zwischen zwei Punkten, höchstens 6 Kacheln.',
+    trap: true,
+    desc: 'Pendelt zwischen zwei Punkten, höchstens 6 Felder.',
     params: [
       { key: 'dx', name: 'Weg waagerecht', min: -6, max: 6, def: 3 },
       { key: 'dy', name: 'Weg senkrecht', min: -6, max: 6, def: 0 },
@@ -99,7 +106,8 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'orbitsaw',
     name: 'Kreisbahnsäge',
     cost: 4,
-    desc: 'Kreist um einen Mittelpunkt, Radius 1 bis 3 Kacheln.',
+    trap: true,
+    desc: 'Kreist um einen Mittelpunkt, Radius 1 bis 3 Felder.',
     params: [
       { key: 'radius', name: 'Radius', min: 1, max: 3, def: 2 },
       { key: 'umlauf', name: 'Umlauf', min: 0, max: 2, def: 1, labels: ['4 s', '3 s', '2 s'] },
@@ -112,6 +120,7 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'pendulum',
     name: 'Pendelklinge',
     cost: 4,
+    trap: true,
     desc: 'Schwingt ±60° an einer Kette von der Decke.',
     params: [
       { key: 'kette', name: 'Kette', min: 2, max: 4, def: 3 },
@@ -124,7 +133,8 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'stomper',
     name: 'Stampfer',
     cost: 4,
-    desc: 'Fällt bis zu 5 Kacheln von der Decke und hebt sich wieder.',
+    trap: true,
+    desc: 'Fällt bis zu 5 Felder von der Decke und hebt sich wieder.',
     params: [{ key: 'takt', name: 'Takt', min: 0, max: 2, def: 1, labels: ['2 s', '3 s', '4 s'] }, PHASE],
   },
   {
@@ -132,6 +142,7 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'crossbow',
     name: 'Armbrust',
     cost: 4,
+    trap: true,
     desc: 'Schießt Bolzen in eine feste Richtung bis zur Wand.',
     params: [
       { key: 'dir', name: 'Richtung', min: 0, max: 3, def: 1, labels: DIR4 },
@@ -144,14 +155,16 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'guard',
     name: 'Wächter',
     cost: 5,
+    trap: true,
     desc: 'Patrouilliert und wendet an Kante oder Wand.',
-    params: [{ key: 'tempo', name: 'Tempo', min: 0, max: 2, def: 1, labels: ['1,9 K/s', '2,8 K/s', '3,8 K/s'] }],
+    params: [{ key: 'tempo', name: 'Tempo', min: 0, max: 2, def: 1, labels: ['1,9 F/s', '2,8 F/s', '3,8 F/s'] }],
   },
   {
     type: ET.SCOUT,
     key: 'scout',
     name: 'Späher',
     cost: 6,
+    trap: true,
     desc: 'Schießt 0,4 s nachdem der Dieb seine Sichtlinie betritt, dann 1,5 s Pause.',
     params: [{ key: 'blick', name: 'Blickrichtung', min: 0, max: 1, def: 1, labels: ['links', 'rechts'] }],
   },
@@ -160,6 +173,7 @@ export const ELEMENT_INFO: readonly ElementInfo[] = [
     key: 'bumper',
     name: 'Prallbrett',
     cost: 1,
+    trap: false,
     desc: 'An der Wand: Wer dagegenläuft, wird in die andere Richtung gedrückt.',
     params: [{ key: 'seite', name: 'Wand', min: 0, max: 1, def: 1, labels: ['links', 'rechts'] }],
   },

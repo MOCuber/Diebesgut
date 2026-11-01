@@ -6,6 +6,8 @@ import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import {
   DEFAULT_PHYSICS,
+  GRID_H,
+  GRID_W,
   ReplayInput,
   createRun,
   fromJson,
@@ -22,9 +24,9 @@ import { solve } from './solver';
 /** Raum mit dem Weg der Lösung: Ziffer = Anzahl gesammelter Schlüssel an dieser Stelle. */
 function drawPath(d: Dungeon, toggles: number[], ticks: number): string {
   const grid: string[][] = [];
-  for (let y = 0; y < 12; y++) {
+  for (let y = 0; y < GRID_H; y++) {
     grid.push([]);
-    for (let x = 0; x < 22; x++) grid[y].push(solid(d, x, y) ? '#' : ' ');
+    for (let x = 0; x < GRID_W; x++) grid[y].push(solid(d, x, y) ? '#' : ' ');
   }
   for (const el of d.elements) grid[el.y][el.x] = ELEMENT_INFO[el.type].name[0].toLowerCase();
   const run = createRun(d);

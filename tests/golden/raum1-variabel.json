@@ -1,0 +1,56 @@
+{
+  "name": "raum1-variabel",
+  "description": "Variable Sprunghöhe (A/B-Variante)",
+  "dungeon": {
+    "name": "Erste Schritte",
+    "startDir": 1,
+    "rows": [
+      "..............",
+      "..T...........",
+      "######........",
+      "######...K....",
+      "......####....",
+      "......####...K",
+      "............##",
+      "S.......K...##"
+    ],
+    "elements": [
+      {
+        "type": "spikes",
+        "x": 3,
+        "y": 7,
+        "dir": 0
+      },
+      {
+        "type": "spikes",
+        "x": 4,
+        "y": 7,
+        "dir": 0
+      },
+      {
+        "type": "spikes",
+        "x": 7,
+        "y": 3,
+        "dir": 0
+      },
+      {
+        "type": "spikes",
+        "x": 10,
+        "y": 5,
+        "dir": 1
+      }
+    ]
+  },
+  "phys": {
+    "variableJump": 1
+  },
+  "toggles": [1, 8, 27],
+  "ticks": 30,
+  "expect": {
+    "dungeonHash": "27c336255840ed66eb9857c48c50936c3aa7d29172a14631b39eaab21d50d959",
+    "status": "dead",
+    "keys": 0,
+    "hashes": [],
+    "finalHash": 1369066542
+  }
+}

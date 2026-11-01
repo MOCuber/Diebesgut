@@ -3,11 +3,17 @@ import { TICKS_PER_SECOND } from './units';
 /**
  * Jede Physikänderung erhöht SIM_VERSION; alte Replays bleiben mit ihrer Version prüfbar.
  * 2: Der Dieb bleibt am Boden an Wänden stehen (statt umzudrehen), dazu alle 13 Elemente und das Prallbrett.
+ * 3: Raster 14 × 8 Felder mit Gelände aus 2 × 2-Blöcken, eine feste und niedrigere Sprunghöhe.
  */
-export const SIM_VERSION = 2;
+export const SIM_VERSION = 3;
 
-export const GRID_W = 22;
-export const GRID_H = 12;
+/**
+ * Raster in Feldern. Kleiner als im Spielkonzept (22 × 12), damit am Handy alles größer ist; das
+ * Gelände besteht aus Blöcken zu BLOCK × BLOCK Feldern, also 7 × 4 Blöcken.
+ */
+export const GRID_W = 14;
+export const GRID_H = 8;
+export const BLOCK = 2;
 
 /** Ein Lauf endet spätestens nach 60 s. */
 export const MAX_RUN_TICKS = 60 * TICKS_PER_SECOND;
@@ -73,22 +79,26 @@ export const PHYSICS_KEYS: readonly (keyof Physics)[] = [
   'wallTurn',
 ];
 
-/** Kennwerte aus dem Spielkonzept („Steuerung & Physik“); Abweichung: Stehenbleiben an Wänden. */
+/**
+ * Kennwerte nach dem Spielkonzept („Steuerung & Physik“), angepasst an Blöcke aus 2 × 2 Feldern:
+ * eine feste Sprunghöhe von 2,46 Feldern (ein Block und etwas Luft, zwei Blöcke nie), Walljump
+ * 2,0 Felder, Sprungfeder 4,43 Felder (gut zwei Blöcke). An Wänden bleibt der Dieb stehen.
+ */
 export const DEFAULT_PHYSICS: Readonly<Physics> = Object.freeze({
   runSpeed: 24,
   gravity: 3,
-  jumpVy: 72,
+  jumpVy: 63,
   minJumpTicks: 6,
   releaseVy: 24,
-  wallJumpVy: 66,
+  wallJumpVy: 57,
   maxFall: 80,
   wallSlide: 12,
   coyote: 5,
   buffer: 6,
-  springVy: 90,
+  springVy: 84,
   thiefW: 152,
   thiefH: 232,
-  variableJump: 1,
+  variableJump: 0,
   wallTurn: 0,
 });
 
@@ -141,33 +151,35 @@ export const PHASE_STEPS = 8;
 /** Geschosse fliegen 48 SE/Tick. */
 export const BOLT_SPEED = 48;
 
-/** Bauregeln eines Modus (Spielkonzept, „Budgets & Bauregeln“). */
+/**
+ * Bauregeln eines Modus. Statt eines Fallenbudgets hat jede Base eine feste Zahl tödlicher Fallen;
+ * Hilfsmittel (Sprungfeder, Bröckelboden, Schalter + Tor, Prallbrett) zählen extra.
+ */
 export interface BuildRules {
-  budget: number;
-  maxPerType: number;
-  maxElements: number;
-  /** Startschutz: kein Fallenfeld in diesem Radius (Kacheln) um den Start */
+  /** genau so viele tödliche Fallen */
+  traps: number;
+  /** höchstens so viele Hilfsmittel */
+  maxHelpers: number;
+  /** Startschutz: kein Fallenfeld in diesem Radius (Felder) um den Start */
   startZone: number;
-  /** Mindestabstand zwischen Start, Schlüsseln und Truhe (Kacheln) */
+  /** Mindestabstand zwischen Start, Schlüsseln und Truhe (Felder) */
   minSpacing: number;
   /** Höchstes Par in Ticks */
   maxPar: number;
 }
 
 export const FORTRESS_RULES: Readonly<BuildRules> = Object.freeze({
-  budget: 40,
-  maxPerType: 6,
-  maxElements: 30,
-  startZone: 3,
-  minSpacing: 4,
+  traps: 4,
+  maxHelpers: 2,
+  startZone: 2,
+  minSpacing: 3,
   maxPar: 45 * TICKS_PER_SECOND,
 });
 
 export const DUEL_RULES: Readonly<BuildRules> = Object.freeze({
-  budget: 20,
-  maxPerType: 6,
-  maxElements: 30,
-  startZone: 3,
-  minSpacing: 4,
+  traps: 2,
+  maxHelpers: 1,
+  startZone: 2,
+  minSpacing: 3,
   maxPar: 30 * TICKS_PER_SECOND,
 });

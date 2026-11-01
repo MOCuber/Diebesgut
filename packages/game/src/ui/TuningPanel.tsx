@@ -33,18 +33,22 @@ export function TuningPanel({ tuning, blind, onTuning, onBlind, onClose }: Props
         <b>
           {num(stats.fullHeight)} hoch · {num(stats.fullWidth, 1)} weit
         </b>
-        <span>Kürzester Sprung</span>
-        <b>
-          {num(stats.minHeight)} hoch · {num(stats.minWidth, 1)} weit
-        </b>
+        {stats.minHeight !== stats.fullHeight && (
+          <>
+            <span>Kürzester Sprung</span>
+            <b>
+              {num(stats.minHeight)} hoch · {num(stats.minWidth, 1)} weit
+            </b>
+          </>
+        )}
         <span>Walljump</span>
         <b>{num(stats.wallHeight)} hoch</b>
         <span>Laufen / Fallen / Rutschen</span>
         <b>
-          {num(stats.runSpeed, 1)} / {num(stats.maxFall, 1)} / {num(stats.wallSlide, 1)} K/s
+          {num(stats.runSpeed, 1)} / {num(stats.maxFall, 1)} / {num(stats.wallSlide, 1)} F/s
         </b>
       </div>
-      <p class="panel-note">Werte in Kacheln bzw. Kacheln pro Sekunde (K/s). 1 Kachel = 256 SE, 1 Tick = 1/60 s.</p>
+      <p class="panel-note">Werte in Feldern bzw. Feldern pro Sekunde (F/s). 1 Feld = 256 SE, ein Block = 2 × 2 Felder, 1 Tick = 1/60 s.</p>
 
       <section class="panel-section">
         <h3>Sprunghöhe</h3>
@@ -73,11 +77,11 @@ export function TuningPanel({ tuning, blind, onTuning, onBlind, onClose }: Props
         ) : (
           <>
             <div class="seg">
+              <button class={`btn small ${tuning.variableJump ? '' : 'primary'}`} onClick={() => set('variableJump', 0)}>
+                Fest (Standard)
+              </button>
               <button class={`btn small ${tuning.variableJump ? 'primary' : ''}`} onClick={() => set('variableJump', 1)}>
                 Variabel (halten = höher)
-              </button>
-              <button class={`btn small ${tuning.variableJump ? '' : 'primary'}`} onClick={() => set('variableJump', 0)}>
-                Fest
               </button>
             </div>
             <button class="btn small" onClick={() => onBlind(newBlindTest())}>

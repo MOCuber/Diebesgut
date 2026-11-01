@@ -1,8 +1,8 @@
 import { GRID_H, GRID_W } from './constants';
 import type { Dungeon } from './dungeon';
 
-/** 22 × 12 Bits = 33 Byte, zeilenweise von oben links, niedrigstes Bit zuerst. */
-export const TERRAIN_BYTES = 33;
+/** 14 × 8 Bits = 14 Byte, zeilenweise von oben links, niedrigstes Bit zuerst. */
+export const TERRAIN_BYTES = (GRID_W * GRID_H + 7) >> 3;
 
 export function inGrid(tx: number, ty: number): boolean {
   return tx >= 0 && tx < GRID_W && ty >= 0 && ty < GRID_H;

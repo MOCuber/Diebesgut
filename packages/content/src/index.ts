@@ -10,9 +10,9 @@ export interface RoomInfo {
   goal: string;
 }
 
-/** Die drei Testräume aus Meilenstein S0 (Laufgefühl). */
+/** Die drei Testräume (14 × 8 Felder, je genau 4 Fallen). */
 export const TEST_ROOMS: readonly RoomInfo[] = [
-  { id: 'raum1', json: raum1 as DungeonJson, goal: 'Kurze und hohe Sprünge, Walljump, Stacheln' },
-  { id: 'raum2', json: raum2 as DungeonJson, goal: 'Sägen überspringen, Schienensägen abpassen' },
-  { id: 'raum3', json: raum3 as DungeonJson, goal: 'Flammen im Takt, Sprünge unter Feuer' },
+  { id: 'raum1', json: raum1 as DungeonJson, goal: 'Sprünge, Walljump, Stacheln' },
+  { id: 'raum2', json: raum2 as DungeonJson, goal: 'Sägen überspringen, Schienensägen abpassen, Sprungfeder' },
+  { id: 'raum3', json: raum3 as DungeonJson, goal: 'Flammen im Takt, Walljumps im Schacht' },
 ];

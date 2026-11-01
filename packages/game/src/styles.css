@@ -498,6 +498,46 @@ td.bad {
   height: 72px;
 }
 
+/* Tippen zum Starten: liegt über dem Raster, lässt Berührungen aber zum Spielfeld durch */
+.tap-start {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px 10px 16px;
+  border-radius: 999px;
+  background: rgba(11, 15, 28, 0.74);
+  border: 1px solid rgba(255, 208, 77, 0.65);
+  color: #ffffff;
+  font-size: clamp(18px, 3.2vw, 30px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: tap-pulse 1.3s ease-in-out infinite;
+}
+
+.tap-start svg {
+  color: var(--accent);
+  flex: none;
+}
+
+@keyframes tap-pulse {
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-start {
+    animation: none;
+  }
+}
+
 /* Ergebnis */
 .overlay {
   position: absolute;
@@ -742,7 +782,7 @@ td.bad {
   bottom: env(safe-area-inset-bottom);
   left: env(safe-area-inset-left);
   display: grid;
-  grid-template-rows: 40px minmax(0, 1fr) 36px;
+  grid-template-rows: 44px minmax(0, 1fr) 40px;
   background: var(--bg);
   -webkit-user-select: none;
   user-select: none;
@@ -856,7 +896,7 @@ td.bad {
 
 .ed-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px;
+  grid-template-columns: minmax(0, 1fr) 224px;
   min-height: 0;
 }
 
@@ -921,8 +961,8 @@ td.bad {
   background: var(--panel-2);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
-  min-height: 32px;
+  font-size: 13px;
+  min-height: 36px;
   padding: 4px 6px;
   border-radius: 8px;
   cursor: pointer;
@@ -936,23 +976,19 @@ td.bad {
 }
 
 .ed-tool.el {
-  justify-content: space-between;
+  justify-content: flex-start;
   text-align: left;
-  font-size: 11px;
+  font-size: 12px;
 }
 
+/* lange Namen wie „Kreisbahnsäge“ nach Silben trennen (lang="de") */
 .ed-tool span {
   min-width: 0;
-  overflow-wrap: anywhere;
   hyphens: auto;
 }
 
 .ed-grid > * {
   min-width: 0;
-}
-
-.ed-tool.el b {
-  color: var(--accent);
 }
 
 .ed-tool.active {
@@ -961,8 +997,12 @@ td.bad {
   border-color: var(--accent);
 }
 
-.ed-tool.active b {
-  color: var(--accent-ink);
+.ed-label b.ok {
+  color: var(--good);
+}
+
+.ed-label b.off {
+  color: var(--bad);
 }
 
 .ed-tool.wide {
@@ -1121,6 +1161,17 @@ td.bad {
 .ed-thumb {
   display: block;
   border-radius: 6px;
+}
+
+/* Platzhalter für Festungen aus dem alten Raster */
+.ed-thumb.old {
+  width: 132px;
+  height: 77px;
+  display: grid;
+  place-items: center;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .ed-toast {

@@ -9,7 +9,7 @@ export {
   compareElements,
   decode,
   dungeonHash,
-  elementCost,
+  countElements,
   encode,
   footprint,
   fromJson,

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { sfx } from '../app';
 import { Effects } from '../game/effects';
 import { JumpInput } from '../game/input';
-import { Renderer } from '../game/render';
+import { FRAME, Renderer } from '../game/render';
 import { Session, type EndInfo, type WinInfo } from '../game/session';
 import { keyCount, seconds } from '../format';
 import type { Prefs } from '../storage';
@@ -43,6 +43,7 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
   const [side, setSide] = useState(false);
   const [win, setWin] = useState<WinInfo | null>(null);
   const [panel, setPanel] = useState(false);
+  const [ready, setReady] = useState(true);
   const winAt = useRef(0);
 
   // Sitzung, Eingabe und Größe
@@ -67,6 +68,9 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
       ended(info) {
         test?.onEnd(info);
       },
+      ready(waiting) {
+        setReady(waiting);
+      },
     });
     session.hitboxes = prefs.hitboxes;
     sessionRef.current = session;
@@ -74,8 +78,11 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
     const layout = () => {
       const W = area.clientWidth;
       const H = area.clientHeight;
-      const sideTile = Math.floor(Math.min((W - 2 * SIDE) / GRID_W, H / GRID_H));
-      const topTile = Math.floor(Math.min(W / GRID_W, (H - TOP) / GRID_H));
+      // Das Raster samt Steinrahmen soll hineinpassen.
+      const cols = GRID_W + 2 * FRAME;
+      const rows = GRID_H + 2 * FRAME;
+      const sideTile = Math.floor(Math.min((W - 2 * SIDE) / cols, H / rows));
+      const topTile = Math.floor(Math.min(W / cols, (H - TOP) / rows));
       const useSide = sideTile >= topTile;
       const tile = Math.max(8, useSide ? sideTile : topTile);
       const ox = Math.floor((W - tile * GRID_W) / 2);
@@ -205,6 +212,17 @@ export function PlayScreen({ room, phys, blindLabel, tuning, prefs, onTuning, on
             <IconRestart />
           </button>
         </div>
+
+        {ready && !win && !panel && (
+          <div class="tap-start" aria-live="polite">
+            <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true">
+              <circle cx="16" cy="16" r="5" fill="currentColor" />
+              <circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2" opacity="0.6" />
+              <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
+            </svg>
+            <span>Tippen zum Starten</span>
+          </div>
+        )}
 
         {win && (
           <div
