@@ -205,16 +205,13 @@ export function validate(d: Dungeon, rules: BuildRules = FORTRESS_RULES): Proble
       const v = el.p[i];
       if (!Number.isInteger(v) || v < spec.min || v > spec.max) add('param', `${info.name}: ${spec.name} muss zwischen ${spec.min} und ${spec.max} liegen`, el.x, el.y, id);
     });
+    // Startschutz: Im Umkreis um den Start steht kein Element. Hineinreichen dürfen sie: Sichtlinie,
+    // Bolzen, Flammen, Wege und Schwünge zählen nicht.
+    const sx = el.x - d.start.x;
+    const sy = el.y - d.start.y;
+    if (sx * sx + sy * sy <= zone2) add('startzone', `${info.name} steht im Startschutz (${rules.startZone} Felder)`, el.x, el.y, id);
     if (!behavior) return;
     behavior.check?.(el, d, (msg) => add('place', msg, el.x, el.y, id));
-    for (const t of footprint(el, d)) {
-      const dx = t.x - d.start.x;
-      const dy = t.y - d.start.y;
-      if (dx * dx + dy * dy <= zone2) {
-        add('startzone', `${info.name} liegt im Startschutz (${rules.startZone} Felder)`, el.x, el.y, id);
-        break;
-      }
-    }
   });
 
   // Jede Base hat genau rules.traps Fallen, Hilfsmittel zählen extra.

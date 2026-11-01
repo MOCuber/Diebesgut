@@ -113,13 +113,13 @@
       }
     ]
   },
-  "toggles": [1, 19],
-  "ticks": 46,
+  "toggles": [1, 19, 49, 58, 75],
+  "ticks": 77,
   "expect": {
     "dungeonHash": "a60d81640dcafc1e6ee8b29e94c25889a52ba209075e59ca05e00065e6c4e8d2",
     "status": "dead",
     "keys": 0,
-    "hashes": [],
-    "finalHash": 2258893499
+    "hashes": [4278759198],
+    "finalHash": 3799217920
   }
 }

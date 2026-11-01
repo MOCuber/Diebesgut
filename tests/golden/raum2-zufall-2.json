@@ -3,60 +3,60 @@
   "description": "Zufallseingaben, Seed 2",
   "dungeon": {
     "name": "Sägewerk",
-    "startDir": -1,
+    "startDir": 1,
     "rows": [
       "..............",
-      ".....T........",
-      "..####........",
-      "..####........",
-      "K.............",
-      "..........K...",
-      "..........##..",
-      "......K...##.S"
+      "..T........K..",
+      "######..######",
+      "######..######",
+      "......K.......",
+      "..............",
+      "..............",
+      ".........K...S"
     ],
     "elements": [
       {
         "type": "spring",
-        "x": 0,
-        "y": 7
-      },
-      {
-        "type": "saw",
-        "x": 2,
-        "y": 7
-      },
-      {
-        "type": "saw",
-        "x": 8,
+        "x": 7,
         "y": 7
       },
       {
         "type": "railsaw",
-        "x": 4,
-        "y": 4,
-        "dx": 5,
+        "x": 10,
+        "y": 7,
+        "dx": 0,
+        "dy": -3,
+        "tempo": 1,
+        "phase": 0
+      },
+      {
+        "type": "saw",
+        "x": 9,
+        "y": 6
+      },
+      {
+        "type": "railsaw",
+        "x": 8,
+        "y": 0,
+        "dx": 4,
         "dy": 0,
         "tempo": 1,
         "phase": 0
       },
       {
-        "type": "railsaw",
-        "x": 1,
-        "y": 0,
-        "dx": 0,
-        "dy": 3,
-        "tempo": 1,
-        "phase": 0
+        "type": "saw",
+        "x": 12,
+        "y": 4
       }
     ]
   },
   "toggles": [1, 1, 5, 27, 49],
-  "ticks": 52,
+  "ticks": 56,
   "expect": {
-    "dungeonHash": "310d5263ac3208aeb91365c2f7e024a69b3ac9cacee5dbcf2f1d143cdba6af36",
+    "dungeonHash": "b39d57248cac319a94b0186af54bfe7f400206021097c63c275fb50750424606",
     "status": "dead",
-    "keys": 2,
+    "keys": 0,
     "hashes": [],
-    "finalHash": 1951909740
+    "finalHash": 3981483489
   }
 }

@@ -191,9 +191,9 @@ export class EditorView {
 
     // Start: der Dieb mit Blickrichtung
     const th = run.thief;
-    drawThief(ctx, th.x, th.y, d.start.dir, true, 0, 0, time, 0.9);
+    drawThief(ctx, th.x, th.y, d.start.dir, true, 0, 0, time, 0.9, run.phys.thiefW, run.phys.thiefH);
     const ax = (d.start.x << 8) + 128;
-    const ay = (d.start.y << 8) - 30;
+    const ay = th.y - 44;
     ctx.fillStyle = '#5ad19a';
     ctx.beginPath();
     ctx.moveTo(ax + d.start.dir * 70, ay);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_PHYSICS,
   ET,
   FORTRESS_RULES,
   HASH_INTERVAL,
@@ -71,7 +72,7 @@ describe('Bröckelboden', () => {
     expect(stepped).toBeGreaterThan(0);
     expect(broken - stepped).toBe(24);
     // der Dieb ist durchgefallen und steht unten
-    expect(run.thief.y).toBe(7 * 256 + 24);
+    expect(run.thief.y).toBe(8 * 256 - DEFAULT_PHYSICS.thiefH);
     expect(run.dyn[off]).toBe(0);
   });
 });

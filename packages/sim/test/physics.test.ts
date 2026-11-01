@@ -32,25 +32,25 @@ function wallRun() {
 }
 
 describe('Sprungphysik (Blöcke aus 2 × 2 Feldern)', () => {
-  it('eine feste Sprunghöhe: 630 SE (2,46 Felder), 3,84 Felder weit', () => {
+  it('eine feste Sprunghöhe: 345 SE (1,35 Felder), 2 Felder weit', () => {
     const p = jumpProfile(PRESS, HOLD);
-    expect(p.rise).toBe(630);
-    expect(p.landTick).toBe(42); // 41 Ticks in der Luft
-    expect(p.airDist).toBe(41 * 24);
+    expect(p.rise).toBe(345);
+    expect(p.landTick).toBe(31); // 30 Ticks in der Luft
+    expect(p.airDist).toBe(30 * 17);
   });
 
   it('auch kurzes Tippen springt voll hoch', () => {
-    expect(jumpProfile(TAP, NONE).rise).toBe(630);
-    expect(jumpProfile(PRESS, NONE).rise).toBe(630);
+    expect(jumpProfile(TAP, NONE).rise).toBe(345);
+    expect(jumpProfile(PRESS, NONE).rise).toBe(345);
   });
 
-  it('ein Block (2 Felder) ist erreichbar, zwei Blöcke (4 Felder) nie', () => {
-    expect(630).toBeGreaterThan(2 * 256);
-    expect(630).toBeLessThan(4 * 256);
+  it('ein Block (2 Felder) ist zu hoch für einen Sprung, Sprung und Walljump reichen', () => {
+    expect(jumpProfile(PRESS, HOLD).rise).toBeLessThan(2 * 256);
+    expect(345 + 408).toBeGreaterThan(2 * 256);
   });
 
-  it('variable Sprunghöhe bleibt im Tuning wählbar: kurz 399 SE, gehalten 630 SE', () => {
-    expect(jumpProfile(TAP, NONE, VARIABLE).rise).toBe(399);
+  it('variable Sprunghöhe bleibt im Tuning wählbar: kurz 303 SE, gehalten 345 SE', () => {
+    expect(jumpProfile(TAP, NONE, VARIABLE).rise).toBe(303);
     const heights: number[] = [];
     for (let hold = 1; hold <= 20; hold++) {
       const d = flatRoom();
@@ -64,24 +64,24 @@ describe('Sprungphysik (Blöcke aus 2 × 2 Feldern)', () => {
       heights.push(y0 - minY);
     }
     for (let i = 1; i < heights.length; i++) expect(heights[i]).toBeGreaterThanOrEqual(heights[i - 1]);
-    expect(heights[0]).toBe(399);
-    expect(heights[heights.length - 1]).toBe(630);
+    expect(heights[0]).toBe(303);
+    expect(heights[heights.length - 1]).toBe(345);
   });
 
-  it('Walljump: 513 SE hoch (2,0 Felder) und Richtungswechsel', () => {
+  it('Walljump: 408 SE hoch (1,6 Felder) und Richtungswechsel', () => {
     const { d, run } = wallRun();
     expect(run.thief.wall).toBe(1);
     step(d, run, NONE);
     const yWall = run.thief.y;
     step(d, run, PRESS);
     expect(run.thief.dir).toBe(-1);
-    expect(run.thief.vy).toBe(54);
+    expect(run.thief.vy).toBe(48);
     let minY = run.thief.y;
     for (let t = 0; t < 30; t++) {
       step(d, run, HOLD);
       minY = Math.min(minY, run.thief.y);
     }
-    expect(yWall - minY).toBe(513);
+    expect(yWall - minY).toBe(408);
   });
 
   it('am Boden bleibt der Dieb an der Wand stehen und steckt nie in ihr', () => {
@@ -106,7 +106,7 @@ describe('Sprungphysik (Blöcke aus 2 × 2 Feldern)', () => {
       expect(run.thief.x).toBeGreaterThanOrEqual(0);
       if (turned < 0 && run.thief.dir === -1) turned = run.tick;
     }
-    expect(turned).toBe(120);
+    expect(turned).toBe(169);
   });
 
   it('von der Wand weg geht es mit Sprung und Walljump', () => {
@@ -144,8 +144,8 @@ describe('Sprungphysik (Blöcke aus 2 × 2 Feldern)', () => {
   });
 
   it('Eingabepuffer: ein Tippen zählt 6 Ticks lang', () => {
-    // Der Sprung landet in Tick 42, ab Tick 43 ist wieder ein Sprung möglich.
-    const jumped = [37, 38, 43].map((tapTick) => {
+    // Der Sprung landet in Tick 31, ab Tick 32 ist wieder ein Sprung möglich.
+    const jumped = [26, 27, 32].map((tapTick) => {
       const d = flatRoom();
       const run = createRun(d);
       step(d, run, PRESS);
@@ -177,28 +177,50 @@ describe('Fallen, Schlüssel und Truhe', () => {
     runUntilEnd(run, d);
     expect(run.status).toBe('dead');
     expect(run.killer).toBe(0);
-    expect(run.tick).toBe(35);
+    expect(run.tick).toBe(51);
   });
 
-  it('Säge trifft über quadrierte Abstände', () => {
-    const d = flatRoom({ elements: [{ type: 'saw', x: 6, y: 6 }] });
+  it('Säge trifft den Trefferkreis über quadrierte Abstände', () => {
+    const d = flatRoom({ elements: [{ type: 'saw', x: 6, y: 7 }] });
     const run = createRun(d);
     runUntilEnd(run, d);
     expect(run.status).toBe('dead');
-    expect(run.tick).toBe(39);
+    // Mitten 214 SE auseinander (Säge 154 + Dieb 60): in Tick 48 knapp vorbei, in Tick 49 getroffen
+    expect(run.tick).toBe(49);
+  });
+
+  it('eine Säge eine Zeile höher streift den Dieb nicht mehr', () => {
+    const d = flatRoom({ elements: [{ type: 'saw', x: 6, y: 6 }] });
+    const run = createRun(d);
+    runUntilEnd(run, d);
+    expect(run.status).toBe('running');
+  });
+
+  it('nur der Trefferkreis zählt, nicht die ganze Hitbox', () => {
+    // Ein hoher Dieb (232 SE) streift mit der Hitbox die Säge über seinem Weg; der Kreis in seiner
+    // Mitte bleibt darunter. Ein Kreis so hoch wie die Hitbox würde getroffen.
+    const d = flatRoom({ elements: [{ type: 'saw', x: 6, y: 6 }] });
+    const tall = { ...DEFAULT_PHYSICS, thiefH: 232 };
+    const run = createRun(d, tall);
+    runUntilEnd(run, d);
+    expect(run.status).toBe('running');
+    const big = createRun(d, { ...tall, hurtRadius: 116 });
+    runUntilEnd(big, d);
+    expect(big.status).toBe('dead');
   });
 
   it('Flammendüse tötet nur, wenn sie brennt', () => {
-    const off = flatRoom({ elements: [{ type: 'flame', x: 6, y: 7, dir: 0, takt: 0, phase: 0 }] });
+    // Phase 5: aus von Tick 45 bis 104, während der Dieb vorbeiläuft; Phase 1: in dieser Zeit an
+    const off = flatRoom({ elements: [{ type: 'flame', x: 6, y: 7, dir: 0, takt: 0, phase: 5 }] });
     const r1 = createRun(off);
     runUntilEnd(r1, off, 120);
     expect(r1.status).toBe('running');
 
-    const on = flatRoom({ elements: [{ type: 'flame', x: 6, y: 7, dir: 0, takt: 0, phase: 4 }] });
+    const on = flatRoom({ elements: [{ type: 'flame', x: 6, y: 7, dir: 0, takt: 0, phase: 1 }] });
     const r2 = createRun(on);
     runUntilEnd(r2, on, 120);
     expect(r2.status).toBe('dead');
-    expect(r2.tick).toBe(37);
+    expect(r2.tick).toBe(53);
   });
 
   it('alle 3 Schlüssel öffnen die Truhe', () => {
@@ -215,7 +237,7 @@ describe('Fallen, Schlüssel und Truhe', () => {
     runUntilEnd(run, d);
     expect(run.keys).toBe(7);
     expect(run.status).toBe('won');
-    expect(run.tick).toBe(121);
+    expect(run.tick).toBe(171);
   });
 
   it('ohne alle Schlüssel bleibt die Truhe zu', () => {

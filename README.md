@@ -40,16 +40,21 @@ auch den Server.
 - **Raster 14 × 8 Felder statt 22 × 12**, damit am Handy alles größer und weniger fummelig ist. Gelände
   besteht nur aus Blöcken zu 2 × 2 Feldern (7 × 4 Blöcke), Elemente sitzen weiter auf einzelnen Feldern.
   Außerhalb des Rasters ist alles Mauer; Spiel und Editor zeigen sie als Steinrahmen.
-- **Eine feste Sprunghöhe**, passend zu den Blöcken: Sprung 2,46 Felder hoch (ein Block und etwas Luft, zwei
-  Blöcke nie) und 3,84 Felder weit, Walljump 2,0 Felder, Sprungfeder 4,4 Felder; Laufen 5,6 Felder/s,
-  Coyote 5 Ticks, Puffer 6 Ticks. Die variable Sprunghöhe bleibt im Tuning-Panel als A/B-Variante.
+- **Eigene Standardphysik**, im Tuning-Panel am Handy gefunden: Laufen 4 Felder/s, eine feste Sprunghöhe von
+  1,35 Feldern (2 Felder weit), Walljump 1,6 Felder, Sprungfeder 4,4 Felder, Coyote 5 Ticks, Puffer 6 Ticks.
+  Ein Block (2 Felder) ist nur über Walljumps zwischen zwei Wänden oder eine Sprungfeder zu erklimmen. Die
+  variable Sprunghöhe bleibt im Tuning-Panel als A/B-Variante.
+- **Kompakter Dieb mit Trefferkreis:** Die Hitbox ist 152 × 152 SE groß (Gelände, Schlüssel, Schalter);
+  tödlich ist nur ein Kreis mit 60 SE Radius in ihrer Mitte, damit knappe Sprünge fair wirken.
 - **Genau 4 Fallen pro Base** statt eines Fallenbudgets. Hilfsmittel (Sprungfeder, Bröckelboden, Schalter
   + Tor, Prallbrett) zählen nicht dazu, höchstens 2 sind erlaubt. Im Duell später 2 Fallen und 1 Hilfsmittel.
+- **Startschutz nur für den Platz:** Im Umkreis von 2 Feldern um den Start darf kein Element stehen.
+  Hineinreichen dürfen sie: Sichtlinien, Bolzen, Flammen, Schienen und Schwünge zählen nicht.
 - **Stehenbleiben an Wänden:** Läuft der Dieb am Boden gegen eine Wand, bleibt er stehen, statt umzudrehen.
   Weg kommt er per Sprung und Walljump; das Hilfsmittel **Prallbrett** drückt ihn an seiner Wand zurück. Im
   Tuning-Panel lässt sich das alte Umdrehen zum Vergleich einschalten.
 
-Der Sim-Kern rechnet seit diesen Änderungen als Version 3. Festungen aus dem alten Raster lassen sich nicht
+Der Sim-Kern rechnet seit diesen Änderungen als Version 4. Festungen aus dem alten Raster lassen sich nicht
 mehr öffnen; das Menü zeigt sie an, damit man sie löschen kann.
 
 ## Loslegen

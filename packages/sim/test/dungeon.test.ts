@@ -103,7 +103,10 @@ describe('Bauregeln', () => {
     const other = (j: Parameters<typeof flatRoom>[0]) => codes(j).filter((c) => c !== 'traps');
     expect(other({ elements: [{ type: 'saw', x: 4, y: 7 }] })).toContain('startzone');
     expect(other({ elements: [{ type: 'saw', x: 5, y: 6 }] })).toEqual([]);
-    expect(other({ elements: [{ type: 'railsaw', x: 9, y: 6, dx: -6 }] })).toContain('startzone');
+    // Hineinreichen ist erlaubt: Schiene und Sichtlinie enden im Startschutz, die Elemente stehen draußen.
+    expect(other({ elements: [{ type: 'railsaw', x: 9, y: 6, dx: -6 }] })).toEqual([]);
+    expect(other({ elements: [{ type: 'scout', x: 8, y: 7, blick: 0 }] })).toEqual([]);
+    expect(other({ elements: [{ type: 'saw', x: 3, y: 6 }] })).toContain('startzone');
     expect(other({ chest: { x: 4, y: 7 } })).toContain('spacing');
     expect(other({ chest: { x: 5, y: 7 } })).toEqual([]);
     expect(other({ rows: rowsWith([[6, 4, '#']]), elements: [{ type: 'saw', x: 6, y: 4 }] })).toContain('wall');

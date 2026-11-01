@@ -75,3 +75,16 @@ export function circleHitsRect(cx: number, cy: number, r: number, x: number, y: 
 export function shapeHitsRect(s: Shape, x: number, y: number, w: number, h: number): boolean {
   return s.kind === RECT ? rectsOverlap(s.x, s.y, s.w, s.h, x, y, w, h) : circleHitsRect(s.x, s.y, s.w, x, y, w, h);
 }
+
+/** Schneiden sich zwei Kreise? Bloße Berührung zählt nicht. */
+export function circlesOverlap(ax: number, ay: number, ar: number, bx: number, by: number, br: number): boolean {
+  const dx = ax - bx;
+  const dy = ay - by;
+  const r = ar + br;
+  return dx * dx + dy * dy < r * r;
+}
+
+/** Trifft eine Fläche den Kreis um (cx, cy) mit Radius r? */
+export function shapeHitsCircle(s: Shape, cx: number, cy: number, r: number): boolean {
+  return s.kind === RECT ? circleHitsRect(cx, cy, r, s.x, s.y, s.w, s.h) : circlesOverlap(s.x, s.y, s.w, cx, cy, r);
+}

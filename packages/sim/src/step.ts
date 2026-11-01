@@ -1,7 +1,7 @@
 import { DEFAULT_PHYSICS, GRID_H, GRID_W, MAX_RUN_TICKS, type Physics } from './constants';
 import type { Dungeon } from './dungeon';
 import { BEHAVIORS } from './elements';
-import { ShapeList, rectsOverlap, shapeHitsRect, type Shape } from './shapes';
+import { ShapeList, rectsOverlap, shapeHitsCircle, type Shape } from './shapes';
 import { createThief, moveThief, type Thief, type TickInput } from './thief';
 
 export type RunStatus = 'running' | 'dead' | 'won' | 'timeout';
@@ -111,7 +111,8 @@ export function step(d: Dungeon, run: Run, input: TickInput): void {
   // 1.–6. Eingabe, Sprung, Abbruch, Schwerkraft, Bewegung
   moveThief(d, th, ph, input, t, run.block);
 
-  // 7. Fallen auf Tick t setzen (Reihenfolge nach Element-ID), dann Treffertest.
+  // 7. Fallen auf Tick t setzen (Reihenfolge nach Element-ID), dann Treffertest. Tödlich ist nur
+  //    der Trefferkreis um die Mitte der Hitbox, damit knappe Sprünge fair wirken.
   let off = 0;
   for (let i = 0; i < d.elements.length; i++) {
     const el = d.elements[i];
@@ -121,9 +122,11 @@ export function step(d: Dungeon, run: Run, input: TickInput): void {
     off += b.dynSize;
   }
   collectShapes(d, t, run.dyn, scratch);
+  const cx = th.x + (W >> 1);
+  const cy = th.y + (H >> 1);
   for (let i = 0; i < scratch.count; i++) {
     const s = scratch.items[i];
-    if (s.on && shapeHitsRect(s, th.x, th.y, W, H)) {
+    if (s.on && shapeHitsCircle(s, cx, cy, ph.hurtRadius)) {
       run.status = 'dead';
       run.killer = s.el;
       break;

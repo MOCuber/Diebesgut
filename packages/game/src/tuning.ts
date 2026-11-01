@@ -22,6 +22,7 @@ export const TUNING_PARAMS: readonly ParamUi[] = [
   { key: 'buffer', label: 'Eingabepuffer', unit: 'Ticks', step: 1 },
   { key: 'thiefW', label: 'Hitbox Breite', unit: 'SE', step: 8 },
   { key: 'thiefH', label: 'Hitbox Höhe', unit: 'SE', step: 8 },
+  { key: 'hurtRadius', label: 'Trefferkreis Radius', unit: 'SE', step: 4 },
 ];
 
 /** Steighöhe in SE, gerechnet wie im Sim-Kern: erst Abbruch, dann Schwerkraft, dann Bewegung. */

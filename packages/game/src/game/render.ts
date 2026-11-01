@@ -72,7 +72,8 @@ export class Renderer {
 
     const th = f.cur.thief;
     const fade = f.dying < 0 ? 1 : Math.max(0, 1 - f.dying * 3);
-    if (fade > 0) drawThief(ctx, lerp(f.prev.thief.x, th.x, f.alpha), lerp(f.prev.thief.y, th.y, f.alpha), th.dir, th.ground, th.wall, th.vy, t, fade);
+    const ph = f.cur.phys;
+    if (fade > 0) drawThief(ctx, lerp(f.prev.thief.x, th.x, f.alpha), lerp(f.prev.thief.y, th.y, f.alpha), th.dir, th.ground, th.wall, th.vy, t, fade, ph.thiefW, ph.thiefH);
 
     drawParticles(ctx, f.fx);
     if (f.hitboxes || f.dying >= 0) drawHitboxes(ctx, f.d, f.cur, shapes, f.dying >= 0, f.hitboxes);

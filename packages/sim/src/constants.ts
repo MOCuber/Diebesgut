@@ -4,8 +4,10 @@ import { TICKS_PER_SECOND } from './units';
  * Jede Physikänderung erhöht SIM_VERSION; alte Replays bleiben mit ihrer Version prüfbar.
  * 2: Der Dieb bleibt am Boden an Wänden stehen (statt umzudrehen), dazu alle 13 Elemente und das Prallbrett.
  * 3: Raster 14 × 8 Felder mit Gelände aus 2 × 2-Blöcken, eine feste und niedrigere Sprunghöhe.
+ * 4: Standardphysik aus dem Tuning (langsamer, niedriger, Dieb 152 × 152), tödliche Treffer nur
+ *    noch über einen kleineren Trefferkreis statt über die ganze Hitbox.
  */
-export const SIM_VERSION = 3;
+export const SIM_VERSION = 4;
 
 /**
  * Raster in Feldern. Kleiner als im Spielkonzept (22 × 12), damit am Handy alles größer ist; das
@@ -48,9 +50,11 @@ export interface Physics {
   buffer: number;
   /** Sprungfeder (SE/Tick) */
   springVy: number;
-  /** Hitbox des Diebs (SE) */
+  /** Hitbox des Diebs (SE): Gelände, Schlüssel, Truhe, Schalter */
   thiefW: number;
   thiefH: number;
+  /** Radius des Trefferkreises um die Mitte der Hitbox (SE): Nur er zählt für tödliche Fallen. */
+  hurtRadius: number;
   /** 1 = Haltedauer bestimmt die Sprunghöhe, 0 = feste Sprunghöhe (A/B-Test) */
   variableJump: number;
   /**
@@ -77,29 +81,32 @@ export const PHYSICS_KEYS: readonly (keyof Physics)[] = [
   'thiefH',
   'variableJump',
   'wallTurn',
+  'hurtRadius',
 ];
 
 /**
- * Kennwerte nach dem Spielkonzept („Steuerung & Physik“), angepasst an Blöcke aus 2 × 2 Feldern:
- * eine feste Sprunghöhe von 2,46 Feldern (ein Block und etwas Luft, zwei Blöcke nie), Walljump
- * 2,0 Felder, Sprungfeder 4,43 Felder (gut zwei Blöcke). An Wänden bleibt der Dieb stehen.
+ * Standardwerte, im Tuning-Panel am Handy gefunden: Laufen 4 Felder/s, eine feste Sprunghöhe von
+ * 1,35 Feldern (2 Felder weit), Walljump 1,6 Felder, Sprungfeder 4,4 Felder. Ein Block (2 Felder)
+ * ist damit nur über Walljumps oder eine Sprungfeder zu erklimmen. Der Dieb ist 152 × 152 SE groß,
+ * tödlich ist nur ein Trefferkreis mit 60 SE Radius. An Wänden bleibt er stehen.
  */
 export const DEFAULT_PHYSICS: Readonly<Physics> = Object.freeze({
-  runSpeed: 24,
+  runSpeed: 17,
   gravity: 3,
-  jumpVy: 63,
+  jumpVy: 47,
   minJumpTicks: 6,
   releaseVy: 24,
-  wallJumpVy: 57,
+  wallJumpVy: 51,
   maxFall: 80,
   wallSlide: 12,
   coyote: 5,
   buffer: 6,
   springVy: 84,
   thiefW: 152,
-  thiefH: 232,
+  thiefH: 152,
   variableJump: 0,
   wallTurn: 0,
+  hurtRadius: 60,
 });
 
 /**
@@ -122,6 +129,7 @@ export const PHYSICS_LIMITS: Readonly<Record<keyof Physics, readonly [number, nu
   thiefH: [64, 248],
   variableJump: [0, 1],
   wallTurn: [0, 1],
+  hurtRadius: [16, 124],
 };
 
 /** Übernimmt gültige Ganzzahlen aus p, alles andere bleibt Standard. */
@@ -160,7 +168,7 @@ export interface BuildRules {
   traps: number;
   /** höchstens so viele Hilfsmittel */
   maxHelpers: number;
-  /** Startschutz: kein Fallenfeld in diesem Radius (Felder) um den Start */
+  /** Startschutz: kein Element in diesem Radius (Felder) um den Start; Reichweiten dürfen hinein */
   startZone: number;
   /** Mindestabstand zwischen Start, Schlüsseln und Truhe (Felder) */
   minSpacing: number;

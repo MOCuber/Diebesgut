@@ -40,7 +40,7 @@ export { GUARD_H, GUARD_SPEED, GUARD_W, guardPos, guardRange } from './elements/
 export { SCOUT_AIM, SCOUT_PAUSE, scoutDir, scoutSight } from './elements/scout';
 export { BUMPER_DEPTH } from './elements/bumper';
 
-export { RECT, CIRCLE, rectsOverlap, circleHitsRect, shapeHitsRect } from './shapes';
+export { RECT, CIRCLE, rectsOverlap, circleHitsRect, circlesOverlap, shapeHitsRect, shapeHitsCircle } from './shapes';
 export type { Shape } from './shapes';
 
 export { createRun, cloneRun, step, shapesAt, dynSize, dynOffsets, KEY_BOX, CHEST_BOX } from './step';

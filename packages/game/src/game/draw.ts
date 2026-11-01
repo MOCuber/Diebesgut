@@ -713,62 +713,63 @@ export function drawThief(
   vy: number,
   t: number,
   alpha = 1,
+  w = 152,
+  h = 152,
 ): void {
+  // Kompakt und fast quadratisch: Kapuze und Umhang in einem Stück, Maske mit Augen, Schal und
+  // kurze Füße. Gezeichnet für 152 × 152 SE, auf die Hitbox w × h gestreckt; Ursprung unten Mitte.
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.translate(x + 76, y + 232);
-  ctx.scale(dir, 1);
+  ctx.translate(x + w / 2, y + h);
+  ctx.scale((dir * w) / 152, h / 152);
   const sliding = !ground && wall !== 0;
-  const phase = x * 0.045;
-
-  // Beine
-  ctx.fillStyle = COLORS.mask;
-  if (ground) {
-    const s = Math.sin(phase) * 24;
-    roundRect(ctx, -36 + s, -56, 30, 56, 10);
-    roundRect(ctx, 6 - s, -56, 30, 56, 10);
-  } else if (sliding) {
-    roundRect(ctx, -30, -64, 30, 52, 10);
-    roundRect(ctx, 8, -50, 30, 46, 10);
-  } else {
-    const tuck = vy > 0 ? 12 : 0;
-    roundRect(ctx, -40, -62 + tuck, 30, 48, 10);
-    roundRect(ctx, 10, -56 + tuck, 30, 44, 10);
-  }
+  const phase = x * 0.06;
+  const bob = ground ? -Math.abs(Math.sin(phase)) * 6 : 0;
 
   // Schal weht nach hinten
-  const wave = Math.sin(t * 0.02) * 14;
-  const lift = ground ? 0 : vy > 0 ? 26 : -18;
+  const wave = Math.sin(t * 0.02) * 8;
+  const lift = ground ? 0 : vy > 0 ? 18 : -12;
   ctx.strokeStyle = COLORS.scarf;
-  ctx.lineWidth = 22;
+  ctx.lineWidth = 14;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(-6, -172);
-  ctx.quadraticCurveTo(-66, -168 + wave - lift * 0.5, -112, -150 + wave * 1.4 + lift);
+  ctx.moveTo(-30, -72 + bob);
+  ctx.quadraticCurveTo(-62, -70 + bob + wave - lift * 0.5, -86, -56 + bob + wave * 1.2 + lift);
   ctx.stroke();
 
-  // Umhang
-  ctx.fillStyle = COLORS.cloak;
-  ctx.beginPath();
-  ctx.moveTo(-58, -48);
-  ctx.lineTo(-48, -170);
-  ctx.quadraticCurveTo(0, -196, 48, -170);
-  ctx.lineTo(62, -48);
-  ctx.quadraticCurveTo(0, -36, -58, -48);
-  ctx.fill();
+  // Füße, unter dem Körper hervorschauend
   ctx.fillStyle = COLORS.cloakDark;
-  ctx.fillRect(-52, -92, 110, 14);
+  if (ground) {
+    const s = Math.sin(phase) * 16;
+    roundRect(ctx, -46 + s, -32, 34, 32, 12);
+    roundRect(ctx, 12 - s, -32, 34, 32, 12);
+  } else if (sliding) {
+    // an die Wand gestemmt
+    roundRect(ctx, 34, -50, 38, 26, 12);
+    roundRect(ctx, 26, -32, 38, 26, 12);
+  } else {
+    const tuck = vy > 0 ? 10 : 0;
+    roundRect(ctx, -50, -34 - tuck, 34, 30, 12);
+    roundRect(ctx, 16, -30 - tuck, 34, 30, 12);
+  }
 
-  // Kopf mit Kapuze, Gesicht und Maske
+  // Körper: Kapuze und Umhang als abgerundetes Quadrat, Gürtel
+  ctx.fillStyle = COLORS.cloak;
+  roundRect(ctx, -68, -150 + bob, 136, 124, 48);
   ctx.fillStyle = COLORS.cloakDark;
-  circle(ctx, 0, -206, 58);
+  ctx.fillRect(-64, -62 + bob, 128, 12);
+
+  // Gesicht, Maske und Augen auf der Blickseite
   ctx.fillStyle = COLORS.skin;
-  circle(ctx, 14, -200, 40);
+  roundRect(ctx, -4, -130 + bob, 62, 52, 24);
   ctx.fillStyle = COLORS.mask;
-  roundRect(ctx, -18, -222, 80, 26, 10);
+  roundRect(ctx, -12, -118 + bob, 78, 24, 10);
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(22, -216, 12, 13);
-  ctx.fillRect(42, -216, 12, 13);
+  circle(ctx, 24, -106 + bob, 8);
+  circle(ctx, 46, -106 + bob, 8);
+  ctx.fillStyle = COLORS.mask;
+  circle(ctx, 27, -106 + bob, 4);
+  circle(ctx, 49, -106 + bob, 4);
   ctx.restore();
 }
 
@@ -888,7 +889,19 @@ export function drawHitboxes(ctx: CanvasRenderingContext2D, d: Dungeon, run: Run
     });
     ctx.strokeRect((d.chest.x << 8) + CHEST_BOX.dx, (d.chest.y << 8) + CHEST_BOX.dy, CHEST_BOX.w, CHEST_BOX.h);
   }
+  // Hitbox (Gelände, Schlüssel) gestrichelt, tödlich ist nur der Trefferkreis in ihrer Mitte.
+  const th = run.thief;
+  const ph = run.phys;
   ctx.strokeStyle = COLORS.thiefBox;
+  ctx.lineWidth = 8;
+  ctx.setLineDash([20, 16]);
+  ctx.strokeRect(th.x, th.y, ph.thiefW, ph.thiefH);
+  ctx.setLineDash([]);
   ctx.lineWidth = 10;
-  ctx.strokeRect(run.thief.x, run.thief.y, run.phys.thiefW, run.phys.thiefH);
+  ctx.fillStyle = dead ? 'rgba(255, 59, 92, 0.45)' : 'rgba(77, 225, 255, 0.18)';
+  ctx.strokeStyle = dead ? COLORS.hit : COLORS.thiefBox;
+  ctx.beginPath();
+  ctx.arc(th.x + (ph.thiefW >> 1), th.y + (ph.thiefH >> 1), ph.hurtRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
 }
